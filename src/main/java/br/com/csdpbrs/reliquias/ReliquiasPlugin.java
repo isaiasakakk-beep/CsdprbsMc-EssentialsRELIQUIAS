@@ -38,6 +38,7 @@ public final class ReliquiasPlugin extends JavaPlugin {
         var player = event.getPlayer();
         if (!player.getPersistentDataContainer().has(clockKey, PersistentDataType.BYTE)) {
             player.getInventory().addItem(createClock());
+            player.getPersistentDataContainer().set(clockKey, PersistentDataType.BYTE, (byte) 1);
             player.sendMessage(color("&6Você recebeu o Relógio das Relíquias!"));
         }
     }
