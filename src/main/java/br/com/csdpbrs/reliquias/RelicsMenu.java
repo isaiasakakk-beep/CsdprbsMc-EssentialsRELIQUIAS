@@ -154,7 +154,7 @@ public final class RelicsMenu implements Listener {
         if (!(event.getWhoClicked() instanceof Player player) || event.getClickedInventory() == null
             || event.getClickedInventory() != event.getView().getTopInventory()) return;
         int slot = event.getSlot();
-        if (plugin.missions().isMissionMenu(title)) { if (slot == 10 || slot == 13 || slot == 16) plugin.missions().handleClick(player, slot); return; }
+        if (plugin.missions().isMissionMenu(title)) { if (slot == 10 || slot == 12 || slot == 14 || slot == 16) plugin.missions().handleClick(player, slot); return; }
         if (title.equals(SMITH_TITLE)) {
             switch (slot) {
                 case 10 -> forge(player, RelicCatalog.Rarity.RARO);
