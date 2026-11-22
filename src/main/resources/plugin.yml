@@ -3,7 +3,7 @@ version: ${version}
 main: br.com.csdpbrs.reliquias.ReliquiasPlugin
 api-version: '26.3'
 author: CSDPBRS
- description: Sistema independente de relíquias, chefes e fragmentos.
+description: Sistema independente de relíquias, chefes e fragmentos.
 commands:
   reliquias:
     description: Comandos administrativos do sistema de relíquias.
