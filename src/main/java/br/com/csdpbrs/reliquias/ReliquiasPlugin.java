@@ -10,7 +10,7 @@ import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
-public final class ReliquiasPlugin extends JavaPlugin {
+public final class ReliquiasPlugin extends JavaPlugin implements org.bukkit.event.Listener {
     private NamespacedKey clockKey, ownedKey;
     private RelicsMenu menu;
     private BossManager bossManager;
