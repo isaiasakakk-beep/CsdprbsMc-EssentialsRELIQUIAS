@@ -3,6 +3,9 @@ package br.com.csdpbrs.reliquias;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.EntityEquipment;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.World;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.Entity;
@@ -64,11 +67,44 @@ public final class BossManager {
             var attack = boss.getAttribute(Attribute.ATTACK_DAMAGE);
             if (attack != null) attack.setBaseValue(plugin.getConfig().getDouble(path + ".damage", 5.0));
             boss.getPersistentDataContainer().set(new org.bukkit.NamespacedKey(plugin, "boss_rarity"), PersistentDataType.STRING, rarity);
+            styleBoss(boss, rarity);
             nextSpawn.put(rarity, System.currentTimeMillis() + plugin.getConfig().getLong(path + ".respawn-minutes", 30) * 60_000L);
             announce(boss, rarity);
             return true;
         }
         return false;
+    }
+
+    private void styleBoss(LivingEntity boss, String rarity) {
+        boss.setGlowing(true);
+        EntityEquipment gear = boss.getEquipment();
+        if (gear == null) return;
+        Material armor = switch (rarity) {
+            case "raro" -> Material.CHAINMAIL_CHESTPLATE;
+            case "epico" -> Material.IRON_CHESTPLATE;
+            case "mitico" -> Material.DIAMOND_CHESTPLATE;
+            default -> Material.NETHERITE_CHESTPLATE;
+        };
+        Material helmet = switch (rarity) {
+            case "raro" -> Material.CHAINMAIL_HELMET;
+            case "epico" -> Material.IRON_HELMET;
+            case "mitico" -> Material.DIAMOND_HELMET;
+            default -> Material.NETHERITE_HELMET;
+        };
+        gear.setHelmet(new ItemStack(helmet));
+        gear.setChestplate(new ItemStack(armor));
+        gear.setLeggings(new ItemStack(rarity.equals("lendario") ? Material.NETHERITE_LEGGINGS : rarity.equals("mitico") ? Material.DIAMOND_LEGGINGS : Material.IRON_LEGGINGS));
+        gear.setBoots(new ItemStack(rarity.equals("lendario") ? Material.NETHERITE_BOOTS : rarity.equals("mitico") ? Material.DIAMOND_BOOTS : Material.IRON_BOOTS));
+        Material weapon = switch (rarity) {
+            case "raro" -> Material.IRON_AXE;
+            case "epico" -> Material.DIAMOND_AXE;
+            case "mitico" -> Material.DIAMOND_SWORD;
+            default -> Material.NETHERITE_SWORD;
+        };
+        gear.setItemInMainHand(new ItemStack(weapon));
+        gear.setHelmetDropChance(0f); gear.setChestplateDropChance(0f);
+        gear.setLeggingsDropChance(0f); gear.setBootsDropChance(0f);
+        gear.setItemInMainHandDropChance(0f);
     }
 
     private boolean validLocation(Location loc, String rarity) {
