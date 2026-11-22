@@ -61,3 +61,11 @@ items:
   clock-name: '&6&lRelógio das Relíquias'
   clock-lore:
     - '&7Clique para abrir sua coleção.'
+
+# Custos do Forjador (fragmentos da raridade correspondente)
+smith:
+  cost:
+    raro: 8
+    epico: 12
+    mitico: 18
+    lendario: 24
