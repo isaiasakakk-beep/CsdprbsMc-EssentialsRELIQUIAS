@@ -10,6 +10,7 @@ public final class ReliquiasPlugin extends JavaPlugin {
     private NamespacedKey clockKey;
     private RelicsMenu menu;
     private BossManager bossManager;
+    private RelicSmithNpc smithNpc;
 
     @Override
     public void onEnable() {
@@ -18,6 +19,8 @@ public final class ReliquiasPlugin extends JavaPlugin {
         menu = new RelicsMenu(this);
         getServer().getPluginManager().registerEvents(menu, this);
         getServer().getPluginManager().registerEvents(new RelicsListener(this), this);
+        smithNpc = new RelicSmithNpc(this);
+        getServer().getPluginManager().registerEvents(smithNpc, this);
         bossManager = new BossManager(this);
         bossManager.start();
         getLogger().info("CSDPBRS ESSENTIALS RELIQUIAS ativado.");
@@ -31,6 +34,7 @@ public final class ReliquiasPlugin extends JavaPlugin {
     public NamespacedKey clockKey() { return clockKey; }
     public RelicsMenu menu() { return menu; }
     public BossManager bossManager() { return bossManager; }
+    public RelicSmithNpc smithNpc() { return smithNpc; }
 
     public org.bukkit.inventory.ItemStack createClock() {
         var item = new org.bukkit.inventory.ItemStack(org.bukkit.Material.CLOCK);
@@ -58,6 +62,7 @@ public final class ReliquiasPlugin extends JavaPlugin {
             sender.sendMessage(color("&6/reliquias relogio <jogador>"));
             sender.sendMessage(color("&6/reliquias reload"));
             sender.sendMessage(color("&6/reliquias boss <raridade>"));
+            sender.sendMessage(color("&6/reliquias npc"));
             return true;
         }
         if (args[0].equalsIgnoreCase("reload")) {
@@ -70,6 +75,11 @@ public final class ReliquiasPlugin extends JavaPlugin {
             if (target == null) { sender.sendMessage(color("&cJogador não encontrado.")); return true; }
             target.getInventory().addItem(createClock());
             sender.sendMessage(color("&aRelógio entregue para " + target.getName() + "."));
+            return true;
+        }
+        if (args[0].equalsIgnoreCase("npc")) {
+            if (!(sender instanceof org.bukkit.entity.Player player)) { sender.sendMessage(color("&cUse esse comando dentro do jogo.")); return true; }
+            smithNpc.spawn(player);
             return true;
         }
         if (args[0].equalsIgnoreCase("boss") && args.length >= 2) {
