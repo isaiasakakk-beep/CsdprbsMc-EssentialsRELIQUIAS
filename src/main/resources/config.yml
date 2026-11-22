@@ -1,19 +1,15 @@
 # CSDPBRS ESSENTIALS RELIQUIAS
-# Tempos em minutos. Os chefes surgem em locais aleatórios válidos.
+# Os chefes surgem próximos de jogadores online, em posições válidas.
 spawn:
-  check-interval-seconds: 60
+  check-interval-seconds: 30
   minimum-distance-between-players: 24
-  maximum-attempts: 24
-  announcements:
-    alternate: true
-    # true: nome + dimensão; false: aviso genérico
-    first-mode-name-and-world: true
+  maximum-attempts: 48
+  player-radius-min: 28
+  player-radius-max: 48
 bosses:
   raro:
     enabled: true
-    world: world
-    cave-only: false
-    respawn-minutes: 30
+    respawn-minutes: 10
     max-alive: 1
     entity: HUSK
     display-name: '&fGuardião Errante'
@@ -23,8 +19,6 @@ bosses:
     fragments-max: 2
   epico:
     enabled: true
-    world: world
-    cave-only: true
     respawn-minutes: 120
     max-alive: 1
     entity: ZOMBIE
@@ -35,8 +29,6 @@ bosses:
     fragments-max: 4
   mitico:
     enabled: true
-    world: world_nether
-    cave-only: false
     respawn-minutes: 360
     max-alive: 1
     entity: WITHER_SKELETON
@@ -47,8 +39,6 @@ bosses:
     fragments-max: 4
   lendario:
     enabled: true
-    world: world_the_end
-    cave-only: false
     respawn-minutes: 1440
     max-alive: 1
     entity: ENDERMAN
