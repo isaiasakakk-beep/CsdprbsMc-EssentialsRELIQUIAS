@@ -40,7 +40,7 @@ public final class ReliquiasPlugin extends JavaPlugin implements org.bukkit.even
     public void onFirstJoin(org.bukkit.event.player.PlayerJoinEvent event) {
         var player = event.getPlayer();
         if (!player.getPersistentDataContainer().has(clockKey, PersistentDataType.BYTE)) {
-            player.getInventory().addItem(createClock());
+            giveOrDrop(player, createClock());
             player.getPersistentDataContainer().set(clockKey, PersistentDataType.BYTE, (byte) 1);
             player.sendMessage(color("&6Você recebeu o Relógio das Relíquias!"));
         }
@@ -64,6 +64,13 @@ public final class ReliquiasPlugin extends JavaPlugin implements org.bukkit.even
     public void registerOwned(org.bukkit.entity.Player player, String id) {
         Set<String> ids = ownedRelics(player); ids.add(id);
         player.getPersistentDataContainer().set(ownedKey, PersistentDataType.STRING, String.join(",", ids));
+    }
+
+    public void giveOrDrop(org.bukkit.entity.Player player, org.bukkit.inventory.ItemStack item) {
+        getServer().getScheduler().runTask(this, () -> {
+            var leftovers = player.getInventory().addItem(item);
+            leftovers.values().forEach(left -> player.getWorld().dropItemNaturally(player.getLocation(), left));
+        });
     }
 
     public org.bukkit.inventory.ItemStack createClock() {
@@ -99,14 +106,14 @@ public final class ReliquiasPlugin extends JavaPlugin implements org.bukkit.even
         if (args[0].equalsIgnoreCase("relogio") && args.length >= 2) {
             var target = getServer().getPlayerExact(args[1]);
             if (target == null) { sender.sendMessage(color("&cJogador não encontrado.")); return true; }
-            target.getInventory().addItem(createClock()); sender.sendMessage(color("&aRelógio entregue.")); return true;
+            giveOrDrop(target, createClock()); sender.sendMessage(color("&aRelógio entregue.")); return true;
         }
         if (args[0].equalsIgnoreCase("give") && args.length >= 3) {
             var target = getServer().getPlayerExact(args[1]);
             if (target == null) { sender.sendMessage(color("&cJogador não encontrado.")); return true; }
             var relic = RelicCatalog.all().stream().filter(r -> r.id().equalsIgnoreCase(args[2])).findFirst().orElse(null);
             if (relic == null) { sender.sendMessage(color("&cID inválido. IDs: " + String.join(", ", RelicCatalog.all().stream().map(RelicCatalog.Relic::id).toList()))); return true; }
-            target.getInventory().addItem(createRelic(relic)); registerOwned(target, relic.id());
+            giveOrDrop(target, createRelic(relic)); registerOwned(target, relic.id());
             sender.sendMessage(color("&aRelíquia &f" + relic.name() + " &aentregue para " + target.getName() + ".")); return true;
         }
         if (args[0].equalsIgnoreCase("npc")) {
