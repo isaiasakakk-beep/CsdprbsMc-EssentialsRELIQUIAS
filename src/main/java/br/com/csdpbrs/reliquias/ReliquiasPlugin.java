@@ -5,23 +5,25 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.persistence.PersistentDataType;
+import java.util.Arrays;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 public final class ReliquiasPlugin extends JavaPlugin {
-    private NamespacedKey clockKey;
+    private NamespacedKey clockKey, ownedKey;
     private RelicsMenu menu;
     private BossManager bossManager;
     private RelicSmithNpc smithNpc;
-    private RelicAbilityListener abilityListener;
 
-    @Override
-    public void onEnable() {
+    @Override public void onEnable() {
         saveDefaultConfig();
         clockKey = new NamespacedKey(this, "relics_clock");
+        ownedKey = new NamespacedKey(this, "owned_relics");
         menu = new RelicsMenu(this);
         getServer().getPluginManager().registerEvents(menu, this);
         getServer().getPluginManager().registerEvents(new RelicsListener(this), this);
-        abilityListener = new RelicAbilityListener(this);
-        getServer().getPluginManager().registerEvents(abilityListener, this);
+        getServer().getPluginManager().registerEvents(new RelicAbilityListener(this), this);
         smithNpc = new RelicSmithNpc(this);
         getServer().getPluginManager().registerEvents(smithNpc, this);
         bossManager = new BossManager(this);
@@ -29,90 +31,71 @@ public final class ReliquiasPlugin extends JavaPlugin {
         getLogger().info("CSDPBRS ESSENTIALS RELIQUIAS ativado.");
     }
 
-    @Override
-    public void onDisable() {
-        if (bossManager != null) bossManager.stop();
-    }
-
+    @Override public void onDisable() { if (bossManager != null) bossManager.stop(); }
     public NamespacedKey clockKey() { return clockKey; }
+    public NamespacedKey ownedKey() { return ownedKey; }
     public RelicsMenu menu() { return menu; }
     public BossManager bossManager() { return bossManager; }
     public RelicSmithNpc smithNpc() { return smithNpc; }
+
+    public Set<String> ownedRelics(org.bukkit.entity.Player player) {
+        String raw = player.getPersistentDataContainer().get(ownedKey, PersistentDataType.STRING);
+        Set<String> ids = new LinkedHashSet<>();
+        if (raw != null && !raw.isBlank()) ids.addAll(Arrays.asList(raw.split(",")));
+        return ids;
+    }
+    public boolean owns(org.bukkit.entity.Player player, String id) { return ownedRelics(player).contains(id); }
+    public void registerOwned(org.bukkit.entity.Player player, String id) {
+        Set<String> ids = ownedRelics(player); ids.add(id);
+        player.getPersistentDataContainer().set(ownedKey, PersistentDataType.STRING, String.join(",", ids));
+    }
 
     public org.bukkit.inventory.ItemStack createClock() {
         var item = new org.bukkit.inventory.ItemStack(org.bukkit.Material.CLOCK);
         var meta = item.getItemMeta();
         meta.setDisplayName(color(getConfig().getString("items.clock-name", "&6&lRelógio das Relíquias")));
-        var lore = getConfig().getStringList("items.clock-lore").stream().map(ReliquiasPlugin::color).toList();
-        meta.setLore(lore);
-        meta.getPersistentDataContainer().set(clockKey, org.bukkit.persistence.PersistentDataType.BYTE, (byte) 1);
-        item.setItemMeta(meta);
-        return item;
+        meta.setLore(getConfig().getStringList("items.clock-lore").stream().map(ReliquiasPlugin::color).toList());
+        meta.getPersistentDataContainer().set(clockKey, PersistentDataType.BYTE, (byte) 1);
+        item.setItemMeta(meta); return item;
     }
-
     public org.bukkit.inventory.ItemStack createRelic(RelicCatalog.Relic relic) {
         var item = new org.bukkit.inventory.ItemStack(relic.icon());
         var meta = item.getItemMeta();
         meta.setDisplayName(color(relic.rarity().color + "&l" + relic.name()));
-        meta.setLore(java.util.List.of(
-            color("&7" + relic.power()),
-            color("&7Recarga: &f" + relic.cooldown()),
-            color("&eClique com o botão direito para ativar."),
-            color("&8Relíquia: " + relic.id())
-        ));
-        meta.getPersistentDataContainer().set(new NamespacedKey(this, "relic_id"),
-            org.bukkit.persistence.PersistentDataType.STRING, relic.id());
-        item.setItemMeta(meta);
-        return item;
+        meta.setLore(java.util.List.of(color("&7" + relic.power()), color("&7Recarga: &f" + relic.cooldown()),
+            color("&eClique com o botão direito para ativar."), color("&8Relíquia: " + relic.id())));
+        meta.getPersistentDataContainer().set(new NamespacedKey(this, "relic_id"), PersistentDataType.STRING, relic.id());
+        item.setItemMeta(meta); return item;
     }
+    public static String color(String text) { return ChatColor.translateAlternateColorCodes('&', text == null ? "" : text); }
 
-    public static String color(String text) {
-        return ChatColor.translateAlternateColorCodes('&', text == null ? "" : text);
-    }
-
-    @Override
-    public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+    @Override public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (!command.getName().equalsIgnoreCase("reliquias")) return false;
-        if (!sender.hasPermission("reliquias.admin")) {
-            sender.sendMessage(color("&cVocê não tem permissão."));
-            return true;
-        }
+        if (!sender.hasPermission("reliquias.admin")) { sender.sendMessage(color("&cVocê não tem permissão.")); return true; }
         if (args.length == 0) {
             sender.sendMessage(color("&6/reliquias relogio <jogador>"));
             sender.sendMessage(color("&6/reliquias give <jogador> <id>"));
             sender.sendMessage(color("&6/reliquias reload"));
             sender.sendMessage(color("&6/reliquias boss <raridade>"));
-            sender.sendMessage(color("&6/reliquias npc"));
-            return true;
+            sender.sendMessage(color("&6/reliquias npc")); return true;
         }
-        if (args[0].equalsIgnoreCase("reload")) {
-            reloadConfig();
-            sender.sendMessage(color("&aConfiguração recarregada. Reinicie para aplicar os novos ciclos de chefes."));
-            return true;
-        }
+        if (args[0].equalsIgnoreCase("reload")) { reloadConfig(); sender.sendMessage(color("&aConfiguração recarregada.")); return true; }
         if (args[0].equalsIgnoreCase("relogio") && args.length >= 2) {
             var target = getServer().getPlayerExact(args[1]);
             if (target == null) { sender.sendMessage(color("&cJogador não encontrado.")); return true; }
-            target.getInventory().addItem(createClock());
-            sender.sendMessage(color("&aRelógio entregue para " + target.getName() + "."));
-            return true;
+            target.getInventory().addItem(createClock()); sender.sendMessage(color("&aRelógio entregue.")); return true;
         }
         if (args[0].equalsIgnoreCase("give") && args.length >= 3) {
             var target = getServer().getPlayerExact(args[1]);
             if (target == null) { sender.sendMessage(color("&cJogador não encontrado.")); return true; }
             var relic = RelicCatalog.all().stream().filter(r -> r.id().equalsIgnoreCase(args[2])).findFirst().orElse(null);
-            if (relic == null) {
-                sender.sendMessage(color("&cID inválido. IDs: " + String.join(", ", RelicCatalog.all().stream().map(RelicCatalog.Relic::id).toList())));
-                return true;
-            }
-            target.getInventory().addItem(createRelic(relic));
-            sender.sendMessage(color("&aRelíquia &f" + relic.name() + " &aentregue para " + target.getName() + "."));
-            return true;
+            if (relic == null) { sender.sendMessage(color("&cID inválido. IDs: " + String.join(", ", RelicCatalog.all().stream().map(RelicCatalog.Relic::id).toList()))); return true; }
+            target.getInventory().addItem(createRelic(relic)); registerOwned(target, relic.id());
+            sender.sendMessage(color("&aRelíquia &f" + relic.name() + " &aentregue para " + target.getName() + ".")); return true;
         }
         if (args[0].equalsIgnoreCase("npc")) {
             if (!(sender instanceof org.bukkit.entity.Player player)) { sender.sendMessage(color("&cUse esse comando dentro do jogo.")); return true; }
-            smithNpc.spawn(player);
-            return true;
+            smithNpc.spawn(player); return true;
         }
         if (args[0].equalsIgnoreCase("boss") && args.length >= 2) {
             if (bossManager.spawnNow(args[1].toLowerCase())) sender.sendMessage(color("&aTentativa de invocação iniciada."));
