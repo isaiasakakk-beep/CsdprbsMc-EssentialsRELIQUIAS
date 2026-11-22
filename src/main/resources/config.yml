@@ -1,0 +1,63 @@
+# CSDPBRS ESSENTIALS RELIQUIAS
+# Tempos em minutos. Os chefes surgem em locais aleatórios válidos.
+spawn:
+  check-interval-seconds: 60
+  minimum-distance-between-players: 24
+  maximum-attempts: 24
+  announcements:
+    alternate: true
+    # true: nome + dimensão; false: aviso genérico
+    first-mode-name-and-world: true
+bosses:
+  raro:
+    enabled: true
+    world: world
+    cave-only: false
+    respawn-minutes: 30
+    max-alive: 1
+    entity: HUSK
+    display-name: '&fGuardião Errante'
+    max-health: 60.0
+    damage: 5.0
+    fragments-min: 2
+    fragments-max: 2
+  epico:
+    enabled: true
+    world: world
+    cave-only: true
+    respawn-minutes: 120
+    max-alive: 1
+    entity: ZOMBIE
+    display-name: '&5Sentinela das Profundezas'
+    max-health: 140.0
+    damage: 8.0
+    fragments-min: 2
+    fragments-max: 4
+  mitico:
+    enabled: true
+    world: world_nether
+    cave-only: false
+    respawn-minutes: 360
+    max-alive: 1
+    entity: WITHER_SKELETON
+    display-name: '&cExecutor do Abismo'
+    max-health: 260.0
+    damage: 12.0
+    fragments-min: 2
+    fragments-max: 4
+  lendario:
+    enabled: true
+    world: world_the_end
+    cave-only: false
+    respawn-minutes: 1440
+    max-alive: 1
+    entity: ENDERMAN
+    display-name: '&6Soberano do Fim'
+    max-health: 500.0
+    damage: 16.0
+    fragments-min: 2
+    fragments-max: 4
+items:
+  clock-name: '&6&lRelógio das Relíquias'
+  clock-lore:
+    - '&7Clique para abrir sua coleção.'
