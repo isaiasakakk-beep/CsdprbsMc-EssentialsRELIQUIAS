@@ -1,35 +1,47 @@
 # CSDPBRS ESSENTIALS RELIQUIAS
 
-Plugin independente para Paper, dedicado a chefes, fragmentos, relíquias e ao NPC Forjador de Relíquias.
+Plugin independente para Paper 26.3, com chefes, fragmentos, relíquias colecionáveis, missões e o NPC Forjador.
 
-## Implementado nesta etapa
-- Projeto Java/Gradle e metadados do plugin.
-- Relógio das Relíquias e menus com identidade visual escura e cores por raridade.
-- Catálogo de 20 conceitos de relíquias: 5 raras (branco), 5 épicas (roxo), 5 míticas (vermelho) e 5 lendárias (laranja), cada uma com ícone, descrição de poder e cooldown planejado.
-- Configuração inicial dos quatro tipos de chefes.
-- Surgimento aleatório, tentativas de validar o local e intervalos por raridade.
-- Avisos alternados: nome + dimensão e aviso genérico sem localização.
-- Drops iniciais de fragmentos.
-- Aparência inicial dos chefes com armaduras/armas por raridade e brilho.
-- NPC Villager Forjador de Relíquias com roupa dourada e menu visual de troca.
+## Sistemas implementados
 
-## Ainda em desenvolvimento
-Os poderes das relíquias ainda são catálogo/design, não habilidades funcionais. As receitas e trocas de fragmentos, persistência dos cooldowns após reinício, guia interativo de chefes, missões, IA/habilidades especiais dos chefes, balanceamento, proteção contra exploits, testes de compatibilidade e compilação final ainda precisam ser implementados.
+- Relógio das Relíquias entregue na primeira entrada do jogador.
+- Menus Bukkit por inventário, compatíveis com Java e Bedrock via Geyser/Floodgate.
+- Coleção persistente de 20 relíquias: 5 raras, 5 épicas, 5 míticas e 5 lendárias.
+- Quatro raridades com identidade visual: branco, roxo, vermelho e laranja.
+- Poderes ativados com clique direito e cooldown individual.
+- Quatro chefes com aparência e atributos configuráveis.
+- Barra de vida dos chefes, habilidades especiais por raridade e locais de surgimento validados.
+- Avisos alternados: nome + dimensão ou aviso genérico sem localização.
+- Fragmentos próprios de cada raridade como recompensa dos chefes.
+- NPC Forjador com trocas por fragmentos e entrega de relíquias ainda não conquistadas.
+- Missões persistentes com recompensas de fragmentos:
+  - Caçador de Criaturas: elimine 50 criaturas hostis para receber 8 fragmentos raros.
+  - Minerador das Profundezas: minere 96 minérios para receber 8 fragmentos épicos.
+  - Caçador de Chefes: derrote 3 chefes de relíquias para receber 8 fragmentos míticos.
+- Menus protegidos contra movimentação de itens.
 
-## Requisitos planejados
+## Requisitos
+
 - Paper 26.3
 - Java 25
-- Geyser/Floodgate para jogadores Bedrock (inventários Bukkit são usados nos menus).
+- Geyser/Floodgate para jogadores Bedrock (os menus usam inventários Bukkit).
 
-## Build
-Com Gradle instalado: `gradle build`. O JAR deve sair em `build/libs/`.
+## Configuração
 
-## Comandos administrativos iniciais
-- `/reliquias relogio <jogador>`
-- `/reliquias boss <raro|epico|mitico|lendario>`
-- `/reliquias npc` (cria o Forjador na posição do administrador)
-- `/reliquias reload`
+Edite `plugins/CSDPBRS-ESSENTIALS-RELIQUIAS/config.yml` para ajustar mundos, intervalos, vida, dano, entidades, quantidade de fragmentos e custos do Forjador.
+
+Os mundos padrão são `world`, `world_nether` e `world_the_end`. Altere os nomes se seu servidor usar outra configuração.
+
+## Comandos administrativos
+
+- `/reliquias relogio <jogador>` — entrega outro Relógio.
+- `/reliquias give <jogador> <id>` — entrega uma relíquia e registra na coleção.
+- `/reliquias boss <raro|epico|mitico|lendario>` — tenta invocar um chefe.
+- `/reliquias npc` — cria o Forjador na posição do administrador.
+- `/reliquias reload` — recarrega a configuração.
 
 Permissão: `reliquias.admin` (OP por padrão).
 
-Os mundos padrão configurados são `world`, `world_nether` e `world_the_end`; ajuste em `config.yml` caso seu servidor use nomes diferentes.
+## Compilação
+
+Com Gradle e Java 25: `gradle build`. O arquivo JAR é gerado em `build/libs/`. O GitHub Actions também compila o projeto e publica o JAR como artefato de cada execução bem-sucedida.
