@@ -18,6 +18,7 @@ public final class RelicsMenu implements Listener {
     private final ReliquiasPlugin plugin;
     private static final String TITLE = ReliquiasPlugin.color("&8&lRELIQUIAS | COLEÇÃO");
     private static final String PREFIX = ReliquiasPlugin.color("&8&lRELIQUIAS | ");
+    private static final String SMITH_TITLE = ReliquiasPlugin.color("&8&lFORJADOR DE RELÍQUIAS");
     public RelicsMenu(ReliquiasPlugin plugin) { this.plugin = plugin; }
 
     public void open(Player player) {
@@ -76,8 +77,9 @@ public final class RelicsMenu implements Listener {
     @EventHandler
     public void onMenuClick(InventoryClickEvent event) {
         String title = event.getView().getTitle();
-        if (!title.equals(TITLE) && !title.startsWith(PREFIX)) return;
+        if (!title.equals(TITLE) && !title.startsWith(PREFIX) && !title.equals(SMITH_TITLE)) return;
         event.setCancelled(true);
+        if (title.equals(SMITH_TITLE)) return;
         if (!(event.getWhoClicked() instanceof Player player) || event.getClickedInventory() == null || event.getClickedInventory() != event.getView().getTopInventory()) return;
         int slot = event.getSlot();
         if (title.equals(TITLE)) {
@@ -96,7 +98,7 @@ public final class RelicsMenu implements Listener {
     @EventHandler
     public void onMenuDrag(InventoryDragEvent event) {
         String title = event.getView().getTitle();
-        if (title.equals(TITLE) || title.startsWith(PREFIX)) event.setCancelled(true);
+        if (title.equals(TITLE) || title.startsWith(PREFIX) || title.equals(SMITH_TITLE)) event.setCancelled(true);
     }
 
     private void decorate(Inventory inv, Material border) {
