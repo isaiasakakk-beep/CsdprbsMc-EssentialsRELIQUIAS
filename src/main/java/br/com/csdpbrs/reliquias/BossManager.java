@@ -113,7 +113,7 @@ public final class BossManager {
         if (loc.getWorld().getPlayers().stream().anyMatch(p -> p.getLocation().distanceSquared(loc) < Math.pow(plugin.getConfig().getInt("spawn.minimum-distance-between-players", 24), 2))) return false;
         if (plugin.getConfig().getBoolean("bosses." + rarity + ".cave-only", false)) {
             int light = loc.getBlock().getLightLevel();
-            if (light > 7 || loc.getBlock().getSkyLightLevel() > 0) return false;
+            if (light > 7 || loc.getBlock().getLightFromSky() > 0) return false;
         }
         return true;
     }
