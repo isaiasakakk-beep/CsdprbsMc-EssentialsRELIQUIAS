@@ -53,7 +53,7 @@ public final class BossManager implements Listener {
     private void checkSpawns() {
         for (String rarity : List.of("raro", "epico", "mitico", "lendario")) {
             if (!plugin.getConfig().getBoolean("bosses." + rarity + ".enabled", true)) continue;
-            long readyAt = nextSpawn.getOrDefault(rarity, 0L);
+            long readyAt = nextSpawn.getOrDefault(rarity, plugin.getConfig().getLong("bosses." + rarity + ".next-spawn-at", 0L));
             if (System.currentTimeMillis() < readyAt || countAlive(rarity) > 0) continue;
             spawnNow(rarity);
         }
@@ -85,7 +85,10 @@ public final class BossManager implements Listener {
             boss.getPersistentDataContainer().set(new org.bukkit.NamespacedKey(plugin, "boss_rarity"), PersistentDataType.STRING, rarity);
             styleBoss(boss, rarity);
             createBar(boss, rarity);
-            nextSpawn.put(rarity, System.currentTimeMillis() + plugin.getConfig().getLong(path + ".respawn-minutes", 30) * 60_000L);
+            long next = System.currentTimeMillis() + plugin.getConfig().getLong(path + ".respawn-minutes", 30) * 60_000L;
+            nextSpawn.put(rarity, next);
+            plugin.getConfig().set(path + ".next-spawn-at", next);
+            plugin.saveConfig();
             announce(boss, rarity);
             return true;
         }
@@ -106,6 +109,10 @@ public final class BossManager implements Listener {
             int min = world.getMinHeight() + 8;
             int max = Math.min(world.getMaxHeight() - 8, world.getHighestBlockYAt(blockX, blockZ) - 4);
             if (max <= min) return null;
+            y = random.nextInt(min, max + 1);
+        } else if (world.getEnvironment() == World.Environment.NETHER) {
+            int min = world.getMinHeight() + 8;
+            int max = Math.min(world.getMaxHeight() - 8, 120);
             y = random.nextInt(min, max + 1);
         } else {
             y = world.getHighestBlockYAt(blockX, blockZ) + 1;
