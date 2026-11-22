@@ -115,7 +115,7 @@ public final class MissionManager implements Listener {
         meta.setDisplayName(ReliquiasPlugin.color((rarity.equals("raro") ? "&f" : rarity.equals("epico") ? "&5" : rarity.equals("mitico") ? "&c" : "&6") + "Fragmento " + rarity));
         meta.getPersistentDataContainer().set(new NamespacedKey(plugin, "fragment_rarity"), PersistentDataType.STRING, rarity);
         fragments.setItemMeta(meta);
-        p.getInventory().addItem(fragments);
+        plugin.giveOrDrop(p, fragments);
         p.sendMessage(ReliquiasPlugin.color("&aMissão concluída! Você recebeu &f" + reward + " fragmentos " + rarity + "&a."));
         open(p);
     }
