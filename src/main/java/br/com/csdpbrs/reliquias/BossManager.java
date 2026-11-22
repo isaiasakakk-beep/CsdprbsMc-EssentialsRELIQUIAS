@@ -62,11 +62,13 @@ public final class BossManager implements Listener {
     public boolean spawnNow(String rarity) {
         String path = "bosses." + rarity;
         if (!plugin.getConfig().contains(path)) return false;
-        World world = Bukkit.getWorld(plugin.getConfig().getString(path + ".world", "world"));
-        if (world == null) return false;
-        int attempts = Math.max(1, plugin.getConfig().getInt("spawn.maximum-attempts", 24));
+        List<Player> onlinePlayers = Bukkit.getOnlinePlayers().stream().toList();
+        if (onlinePlayers.isEmpty()) return false;
+        Player anchor = onlinePlayers.get(ThreadLocalRandom.current().nextInt(onlinePlayers.size()));
+        World world = anchor.getWorld();
+        int attempts = Math.max(1, plugin.getConfig().getInt("spawn.maximum-attempts", 48));
         for (int i = 0; i < attempts; i++) {
-            Location loc = randomLocation(world, rarity);
+            Location loc = randomLocation(anchor, rarity);
             if (loc == null || !validLocation(loc, rarity)) continue;
             EntityType type;
             try {
@@ -85,7 +87,9 @@ public final class BossManager implements Listener {
             boss.getPersistentDataContainer().set(new org.bukkit.NamespacedKey(plugin, "boss_rarity"), PersistentDataType.STRING, rarity);
             styleBoss(boss, rarity);
             createBar(boss, rarity);
-            long next = System.currentTimeMillis() + plugin.getConfig().getLong(path + ".respawn-minutes", 30) * 60_000L;
+            long configuredMinutes = plugin.getConfig().getLong(path + ".respawn-minutes", rarity.equals("raro") ? 10 : 30);
+            long respawnMinutes = rarity.equals("raro") ? Math.min(10L, configuredMinutes) : configuredMinutes;
+            long next = System.currentTimeMillis() + respawnMinutes * 60_000L;
             nextSpawn.put(rarity, next);
             plugin.getConfig().set(path + ".next-spawn-at", next);
             plugin.saveConfig();
@@ -95,28 +99,18 @@ public final class BossManager implements Listener {
         return false;
     }
 
-    private Location randomLocation(World world, String rarity) {
+    private Location randomLocation(Player anchor, String rarity) {
         var random = ThreadLocalRandom.current();
+        World world = anchor.getWorld();
         var border = world.getWorldBorder();
-        double radius = Math.max(16, Math.min(500, border.getSize() / 2.0 - 8));
-        double x = border.getCenter().getX() + random.nextDouble(-radius, radius);
-        double z = border.getCenter().getZ() + random.nextDouble(-radius, radius);
-        int blockX = (int) Math.floor(x);
-        int blockZ = (int) Math.floor(z);
-        boolean cave = plugin.getConfig().getBoolean("bosses." + rarity + ".cave-only", false);
-        int y;
-        if (cave) {
-            int min = world.getMinHeight() + 8;
-            int max = Math.min(world.getMaxHeight() - 8, world.getHighestBlockYAt(blockX, blockZ) - 4);
-            if (max <= min) return null;
-            y = random.nextInt(min, max + 1);
-        } else if (world.getEnvironment() == World.Environment.NETHER) {
-            int min = world.getMinHeight() + 8;
-            int max = Math.min(world.getMaxHeight() - 8, 120);
-            y = random.nextInt(min, max + 1);
-        } else {
-            y = world.getHighestBlockYAt(blockX, blockZ) + 1;
-        }
+        double minRadius = Math.max(25.0, plugin.getConfig().getDouble("spawn.player-radius-min", 28.0));
+        double maxRadius = Math.max(minRadius + 1.0, plugin.getConfig().getDouble("spawn.player-radius-max", 48.0));
+        double angle = random.nextDouble(0.0, Math.PI * 2.0);
+        double radius = random.nextDouble(minRadius, maxRadius);
+        int blockX = anchor.getLocation().getBlockX() + (int) Math.round(Math.cos(angle) * radius);
+        int blockZ = anchor.getLocation().getBlockZ() + (int) Math.round(Math.sin(angle) * radius);
+        int y = anchor.getLocation().getBlockY() + random.nextInt(-8, 9);
+        y = Math.max(world.getMinHeight() + 2, Math.min(world.getMaxHeight() - 3, y));
         Location location = new Location(world, blockX + 0.5, y, blockZ + 0.5);
         return border.isInside(location) ? location : null;
     }
@@ -157,9 +151,6 @@ public final class BossManager implements Listener {
         if (!loc.getBlock().isPassable() || !loc.clone().add(0, 1, 0).getBlock().isPassable()) return false;
         if (loc.clone().subtract(0, 1, 0).getBlock().isPassable()) return false;
         if (loc.getWorld().getPlayers().stream().anyMatch(p -> p.getLocation().distanceSquared(loc) < Math.pow(plugin.getConfig().getInt("spawn.minimum-distance-between-players", 24), 2))) return false;
-        if (plugin.getConfig().getBoolean("bosses." + rarity + ".cave-only", false)) {
-            if (loc.getBlock().getLightLevel() > 7 || loc.getBlock().getLightFromSky() > 0) return false;
-        }
         return true;
     }
 
@@ -253,11 +244,18 @@ public final class BossManager implements Listener {
     }
 
     private void announce(LivingEntity boss, String rarity) {
-        boolean detailed = nextAnnouncementIsDetailed;
-        nextAnnouncementIsDetailed = !nextAnnouncementIsDetailed;
-        String message = detailed
-            ? "&6Um chefe " + rarity + " surgiu na dimensão " + dimensionName(boss.getWorld()) + "!"
-            : "&6Um chefe surgiu! Explore o mundo para encontrá-lo.";
+        if (rarity.equals("raro")) {
+            Location loc = boss.getLocation();
+            String message = "&f&l[CHEFE RARO] &e" + boss.getCustomName()
+                + " &asurgiu! Localização exata: &f" + boss.getWorld().getName()
+                + " &7(X: &f" + loc.getBlockX() + "&7, Y: &f" + loc.getBlockY()
+                + "&7, Z: &f" + loc.getBlockZ() + "&7).";
+            Bukkit.broadcastMessage(ReliquiasPlugin.color(message));
+            return;
+        }
+        String message = "&5&l[CHEFE] &e" + boss.getCustomName()
+            + " &asurgiu na dimensão &f" + dimensionName(boss.getWorld())
+            + "&a! Localização não revelada.";
         Bukkit.broadcastMessage(ReliquiasPlugin.color(message));
     }
 
