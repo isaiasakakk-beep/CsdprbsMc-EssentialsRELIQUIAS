@@ -1,0 +1,15 @@
+name: CSDPBRS-ESSENTIALS-RELIQUIAS
+version: ${version}
+main: br.com.csdpbrs.reliquias.ReliquiasPlugin
+api-version: '26.3'
+author: CSDPBRS
+ description: Sistema independente de relíquias, chefes e fragmentos.
+commands:
+  reliquias:
+    description: Comandos administrativos do sistema de relíquias.
+    usage: /reliquias <relogio|reload|boss>
+    permission: reliquias.admin
+permissions:
+  reliquias.admin:
+    description: Permite administrar o sistema de relíquias.
+    default: op
