@@ -69,10 +69,12 @@ public final class MissionManager implements Listener {
         for (int i = 0; i < 27; i++) if (i < 9 || i >= 18 || i % 9 == 0 || i % 9 == 8) inv.setItem(i, pane);
         mission(inv, 10, player, "cacador", Material.IRON_SWORD, "&f&lCAÇADOR DE CRIATURAS",
             progress(player, kills), 50, "Elimine 50 criaturas hostis.", "raro", 8, kills);
-        mission(inv, 13, player, "minerador", Material.DIAMOND_PICKAXE, "&5&lMINERADOR DAS PROFUNDEZAS",
+        mission(inv, 12, player, "minerador", Material.DIAMOND_PICKAXE, "&5&lMINERADOR DAS PROFUNDEZAS",
             progress(player, ores), 96, "Minere 96 minérios.", "epico", 8, ores);
-        mission(inv, 16, player, "cacador_boss", Material.NETHER_STAR, "&c&lCAÇADOR DE CHEFES",
+        mission(inv, 14, player, "cacador_boss", Material.NETHER_STAR, "&c&lCAÇADOR DE CHEFES",
             progress(player, bosses), 3, "Derrote 3 chefes de relíquias.", "mitico", 8, bosses);
+        mission(inv, 16, player, "soberano", Material.DRAGON_EGG, "&6&lSOBERANO DAS RELÍQUIAS",
+            progress(player, bosses), 10, "Derrote 10 chefes de relíquias.", "lendario", 8, bosses);
         inv.setItem(22, item(Material.BARRIER, "&cFechar"));
         player.openInventory(inv);
     }
@@ -94,8 +96,9 @@ public final class MissionManager implements Listener {
         String rarity;
         int reward = 8;
         if (slot == 10) { id = "cacador"; key = kills; target = 50; rarity = "raro"; }
-        else if (slot == 13) { id = "minerador"; key = ores; target = 96; rarity = "epico"; }
-        else if (slot == 16) { id = "cacador_boss"; key = bosses; target = 3; rarity = "mitico"; }
+        else if (slot == 12) { id = "minerador"; key = ores; target = 96; rarity = "epico"; }
+        else if (slot == 14) { id = "cacador_boss"; key = bosses; target = 3; rarity = "mitico"; }
+        else if (slot == 16) { id = "soberano"; key = bosses; target = 10; rarity = "lendario"; }
         else return;
         Player p = player;
         if (isClaimed(p, id)) { p.sendMessage(ReliquiasPlugin.color("&cVocê já resgatou essa missão.")); return; }
@@ -109,7 +112,7 @@ public final class MissionManager implements Listener {
             raw == null || raw.isBlank() ? id : raw + "," + id);
         ItemStack fragments = new ItemStack(Material.AMETHYST_SHARD, reward);
         ItemMeta meta = fragments.getItemMeta();
-        meta.setDisplayName(ReliquiasPlugin.color((rarity.equals("raro") ? "&f" : rarity.equals("epico") ? "&5" : "&c") + "Fragmento " + rarity));
+        meta.setDisplayName(ReliquiasPlugin.color((rarity.equals("raro") ? "&f" : rarity.equals("epico") ? "&5" : rarity.equals("mitico") ? "&c" : "&6") + "Fragmento " + rarity));
         meta.getPersistentDataContainer().set(new NamespacedKey(plugin, "fragment_rarity"), PersistentDataType.STRING, rarity);
         fragments.setItemMeta(meta);
         p.getInventory().addItem(fragments);
