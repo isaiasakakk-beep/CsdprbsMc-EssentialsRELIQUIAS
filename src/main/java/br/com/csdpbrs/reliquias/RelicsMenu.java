@@ -54,6 +54,16 @@ public final class RelicsMenu implements Listener {
         player.openInventory(inv);
     }
 
+    public void openSmith(Player player) {
+        Inventory inv = Bukkit.createInventory(null, 27, ReliquiasPlugin.color("&8&lFORJADOR DE RELÍQUIAS"));
+        ItemStack border = entry(Material.BLACK_STAINED_GLASS_PANE, " ");
+        for (int i=0;i<27;i++) if (i<9 || i>=18 || i%9==0 || i%9==8) inv.setItem(i,border);
+        inv.setItem(11, entry(Material.AMETHYST_SHARD, "&f&lFRAGMENTOS RAROS", "&7Use fragmentos para forjar relíquias raras.", "&cTrocas ainda serão ativadas."));
+        inv.setItem(13, entry(Material.PURPLE_DYE, "&5&lFRAGMENTOS ÉPICOS", "&7Use fragmentos para forjar relíquias épicas.", "&cTrocas ainda serão ativadas."));
+        inv.setItem(15, entry(Material.RED_DYE, "&c&lFRAGMENTOS MÍTICOS / LENDÁRIOS", "&7Receitas especiais em desenvolvimento."));
+        player.openInventory(inv);
+    }
+
     @EventHandler
     public void onClock(PlayerInteractEvent event) {
         ItemStack item = event.getItem();
