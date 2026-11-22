@@ -15,6 +15,7 @@ public final class ReliquiasPlugin extends JavaPlugin {
     private RelicsMenu menu;
     private BossManager bossManager;
     private RelicSmithNpc smithNpc;
+    private MissionManager missions;
 
     @Override public void onEnable() {
         saveDefaultConfig();
@@ -24,6 +25,8 @@ public final class ReliquiasPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(menu, this);
         getServer().getPluginManager().registerEvents(new RelicsListener(this), this);
         getServer().getPluginManager().registerEvents(this, this);
+        missions = new MissionManager(this);
+        getServer().getPluginManager().registerEvents(missions, this);
         getServer().getPluginManager().registerEvents(new RelicAbilityListener(this), this);
         smithNpc = new RelicSmithNpc(this);
         getServer().getPluginManager().registerEvents(smithNpc, this);
@@ -49,6 +52,7 @@ public final class ReliquiasPlugin extends JavaPlugin {
     public RelicsMenu menu() { return menu; }
     public BossManager bossManager() { return bossManager; }
     public RelicSmithNpc smithNpc() { return smithNpc; }
+    public MissionManager missions() { return missions; }
 
     public Set<String> ownedRelics(org.bukkit.entity.Player player) {
         String raw = player.getPersistentDataContainer().get(ownedKey, PersistentDataType.STRING);
