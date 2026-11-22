@@ -42,7 +42,7 @@ public final class MissionManager implements Listener {
         if (event.getEntity() instanceof Monster) increment(killer, kills, 1);
     }
 
-    @EventHandler
+    @EventHandler(ignoreCancelled = true)
     public void onOreBreak(BlockBreakEvent event) {
         Material type = event.getBlock().getType();
         if (type.name().endsWith("_ORE") || type == Material.ANCIENT_DEBRIS)
