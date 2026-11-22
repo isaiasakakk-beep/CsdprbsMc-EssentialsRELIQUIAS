@@ -109,7 +109,16 @@ public final class BossManager implements Listener {
         double radius = random.nextDouble(minRadius, maxRadius);
         int blockX = anchor.getLocation().getBlockX() + (int) Math.round(Math.cos(angle) * radius);
         int blockZ = anchor.getLocation().getBlockZ() + (int) Math.round(Math.sin(angle) * radius);
-        int y = anchor.getLocation().getBlockY() + random.nextInt(-8, 9);
+        int anchorX = anchor.getLocation().getBlockX();
+        int anchorZ = anchor.getLocation().getBlockZ();
+        int surfaceY = world.getHighestBlockYAt(anchorX, anchorZ);
+        boolean underground = anchor.getLocation().getBlockY() < surfaceY - 2;
+        int y;
+        if (world.getEnvironment() == World.Environment.NETHER || underground) {
+            y = anchor.getLocation().getBlockY() + random.nextInt(-5, 6);
+        } else {
+            y = world.getHighestBlockYAt(blockX, blockZ) + 1;
+        }
         y = Math.max(world.getMinHeight() + 2, Math.min(world.getMaxHeight() - 3, y));
         Location location = new Location(world, blockX + 0.5, y, blockZ + 0.5);
         return border.isInside(location) ? location : null;
