@@ -23,12 +23,23 @@ public final class ReliquiasPlugin extends JavaPlugin {
         menu = new RelicsMenu(this);
         getServer().getPluginManager().registerEvents(menu, this);
         getServer().getPluginManager().registerEvents(new RelicsListener(this), this);
+        getServer().getPluginManager().registerEvents(this, this);
         getServer().getPluginManager().registerEvents(new RelicAbilityListener(this), this);
         smithNpc = new RelicSmithNpc(this);
         getServer().getPluginManager().registerEvents(smithNpc, this);
         bossManager = new BossManager(this);
+        getServer().getPluginManager().registerEvents(bossManager, this);
         bossManager.start();
         getLogger().info("CSDPBRS ESSENTIALS RELIQUIAS ativado.");
+    }
+
+    @org.bukkit.event.EventHandler
+    public void onFirstJoin(org.bukkit.event.player.PlayerJoinEvent event) {
+        var player = event.getPlayer();
+        if (!player.getPersistentDataContainer().has(clockKey, PersistentDataType.BYTE)) {
+            player.getInventory().addItem(createClock());
+            player.sendMessage(color("&6Você recebeu o Relógio das Relíquias!"));
+        }
     }
 
     @Override public void onDisable() { if (bossManager != null) bossManager.stop(); }
