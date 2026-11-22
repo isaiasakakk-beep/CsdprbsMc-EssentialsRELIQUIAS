@@ -9,7 +9,7 @@ spawn:
 bosses:
   raro:
     enabled: true
-    respawn-minutes: 10
+    respawn-minutes: 20
     max-alive: 1
     entity: HUSK
     display-name: '&fGuardião Errante'
@@ -25,7 +25,7 @@ bosses:
     display-name: '&5Sentinela das Profundezas'
     max-health: 140.0
     damage: 8.0
-    fragments-min: 2
+    fragments-min: 4
     fragments-max: 4
   mitico:
     enabled: true
@@ -35,8 +35,8 @@ bosses:
     display-name: '&cExecutor do Abismo'
     max-health: 260.0
     damage: 12.0
-    fragments-min: 2
-    fragments-max: 4
+    fragments-min: 9
+    fragments-max: 9
   lendario:
     enabled: true
     respawn-minutes: 1440
@@ -45,8 +45,8 @@ bosses:
     display-name: '&6Soberano do Fim'
     max-health: 500.0
     damage: 16.0
-    fragments-min: 2
-    fragments-max: 4
+    fragments-min: 12
+    fragments-max: 12
 items:
   clock-name: '&6&lRelógio das Relíquias'
   clock-lore:
