@@ -32,7 +32,7 @@ public final class RelicsMenu implements Listener {
         inv.setItem(12, entry(Material.AMETHYST_SHARD, "&5&lÉPICAS", "&7Cinco relíquias de poder elevado", "&5◆ Raridade roxa", "&8Clique para ver a coleção"));
         inv.setItem(14, entry(Material.REDSTONE_BLOCK, "&c&lMÍTICAS", "&7Cinco relíquias de grande poder", "&c◆ Raridade vermelha", "&8Clique para ver a coleção"));
         inv.setItem(16, entry(Material.BLAZE_POWDER, "&6&lLENDÁRIAS", "&7Cinco relíquias excepcionais", "&6◆ Raridade laranja", "&8Clique para ver a coleção"));
-        inv.setItem(29, entry(Material.NETHER_STAR, "&e&lGUIA DE CHEFES", "&7Raros: explorando o mundo normal", "&5Épicos: cavernas", "&cMíticos: Nether", "&6Lendários: End"));
+        inv.setItem(29, entry(Material.NETHER_STAR, "&e&lGUIA DE CHEFES", "&7Todos surgem perto de jogadores", "&7em qualquer mundo/dimensão.", "&fRaro: 2 fragmentos | 20 min", "&5Épico: 4 fragmentos", "&cMítico: 9 fragmentos", "&6Lendário: 12 fragmentos"));
         inv.setItem(31, entry(Material.BOOK, "&b&lMINHAS RELÍQUIAS", "&7Veja as relíquias que você já conquistou", "&8Clique para abrir sua coleção"));
         inv.setItem(33, entry(Material.EMERALD, "&a&lFORJADOR DE RELÍQUIAS", "&7Troque fragmentos por relíquias", "&8Clique para negociar"));
         inv.setItem(35, entry(Material.WRITABLE_BOOK, "&e&lMISSÕES", "&7Complete desafios difíceis", "&7e ganhe fragmentos de raridade."));
@@ -172,7 +172,7 @@ public final class RelicsMenu implements Listener {
                 case 12 -> openRarity(player, RelicCatalog.Rarity.EPICO);
                 case 14 -> openRarity(player, RelicCatalog.Rarity.MITICO);
                 case 16 -> openRarity(player, RelicCatalog.Rarity.LENDARIO);
-                case 29 -> player.sendMessage(ReliquiasPlugin.color("&eGuia: &fRaros no mundo normal, épicos nas cavernas, míticos no Nether e lendários no End."));
+                case 29 -> player.sendMessage(ReliquiasPlugin.color("&eTodos os chefes surgem perto de jogadores em qualquer dimensão. O Guardião Raro deixa coordenadas no chat e pode ser alcançado pela Bússola do Guardião."));
                 case 31 -> openCollection(player);
                 case 33 -> openSmith(player);
                 case 35 -> plugin.missions().open(player);
