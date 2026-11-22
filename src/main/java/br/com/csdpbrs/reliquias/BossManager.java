@@ -16,8 +16,11 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDeathEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.block.Action;
 import org.bukkit.inventory.EntityEquipment;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
@@ -87,13 +90,15 @@ public final class BossManager implements Listener {
             boss.getPersistentDataContainer().set(new org.bukkit.NamespacedKey(plugin, "boss_rarity"), PersistentDataType.STRING, rarity);
             styleBoss(boss, rarity);
             createBar(boss, rarity);
-            long configuredMinutes = plugin.getConfig().getLong(path + ".respawn-minutes", rarity.equals("raro") ? 10 : 30);
-            long respawnMinutes = rarity.equals("raro") ? Math.min(10L, configuredMinutes) : configuredMinutes;
+            long respawnMinutes = plugin.getConfig().getLong(path + ".respawn-minutes", rarity.equals("raro") ? 20 : 30);
             long next = System.currentTimeMillis() + respawnMinutes * 60_000L;
             nextSpawn.put(rarity, next);
             plugin.getConfig().set(path + ".next-spawn-at", next);
             plugin.saveConfig();
             announce(boss, rarity);
+            if (rarity.equals("raro")) {
+                for (Player player : Bukkit.getOnlinePlayers()) giveTrackerCompass(player);
+            }
             return true;
         }
         return false;
@@ -258,7 +263,7 @@ public final class BossManager implements Listener {
             String message = "&f&l[CHEFE RARO] &e" + boss.getCustomName()
                 + " &asurgiu! Localização exata: &f" + boss.getWorld().getName()
                 + " &7(X: &f" + loc.getBlockX() + "&7, Y: &f" + loc.getBlockY()
-                + "&7, Z: &f" + loc.getBlockZ() + "&7).";
+                + "&7, Z: &f" + loc.getBlockZ() + "&7). &eUse a bússola para dar TP até ele!";
             Bukkit.broadcastMessage(ReliquiasPlugin.color(message));
             return;
         }
@@ -266,6 +271,83 @@ public final class BossManager implements Listener {
             + " &asurgiu na dimensão &f" + dimensionName(boss.getWorld())
             + "&a! Localização não revelada.";
         Bukkit.broadcastMessage(ReliquiasPlugin.color(message));
+    }
+
+    private org.bukkit.NamespacedKey trackerCompassKey() {
+        return new org.bukkit.NamespacedKey(plugin, "rare_boss_compass");
+    }
+
+    private void giveTrackerCompass(Player player) {
+        org.bukkit.NamespacedKey key = trackerCompassKey();
+        for (ItemStack item : player.getInventory().getContents()) {
+            if (item == null || !item.hasItemMeta()) continue;
+            if (item.getItemMeta().getPersistentDataContainer().has(key, PersistentDataType.BYTE)) return;
+        }
+        ItemStack compass = new ItemStack(Material.COMPASS);
+        ItemMeta meta = compass.getItemMeta();
+        meta.setDisplayName(ReliquiasPlugin.color("&f&lBÚSSOLA DO GUARDIÃO"));
+        meta.setLore(List.of(
+            ReliquiasPlugin.color("&7Clique com o botão direito para"),
+            ReliquiasPlugin.color("&7teleportar até o Guardião Errante."),
+            ReliquiasPlugin.color("&eDisponível enquanto ele estiver vivo.")
+        ));
+        meta.getPersistentDataContainer().set(key, PersistentDataType.BYTE, (byte) 1);
+        compass.setItemMeta(meta);
+        plugin.giveOrDrop(player, compass);
+    }
+
+    @EventHandler
+    public void onTrackerCompass(PlayerInteractEvent event) {
+        if (event.getAction() != Action.RIGHT_CLICK_AIR && event.getAction() != Action.RIGHT_CLICK_BLOCK) return;
+        ItemStack item = event.getItem();
+        if (item == null || !item.hasItemMeta()
+            || !item.getItemMeta().getPersistentDataContainer().has(trackerCompassKey(), PersistentDataType.BYTE)) return;
+        event.setCancelled(true);
+        LivingEntity target = null;
+        var bossKey = new org.bukkit.NamespacedKey(plugin, "boss_rarity");
+        for (World world : Bukkit.getWorlds()) {
+            for (Entity entity : world.getEntities()) {
+                if (entity instanceof LivingEntity living
+                    && "raro".equals(entity.getPersistentDataContainer().get(bossKey, PersistentDataType.STRING))) {
+                    target = living;
+                    break;
+                }
+            }
+            if (target != null) break;
+        }
+        if (target == null || target.isDead()) {
+            event.getPlayer().sendMessage(ReliquiasPlugin.color("&cO Guardião Errante não está vivo no momento."));
+            return;
+        }
+        Location destination = findSafeTeleportLocation(target.getLocation());
+        if (destination == null) {
+            event.getPlayer().sendMessage(ReliquiasPlugin.color("&cNão foi possível encontrar um local seguro perto do Guardião."));
+            return;
+        }
+        event.getPlayer().teleport(destination);
+        event.getPlayer().sendMessage(ReliquiasPlugin.color("&aVocê foi teleportado até o Guardião Errante!"));
+        event.getPlayer().playSound(destination, org.bukkit.Sound.ENTITY_ENDERMAN_TELEPORT, 0.8f, 1.2f);
+        destination.getWorld().spawnParticle(Particle.PORTAL, destination, 35, 0.7, 1, 0.7, 0.05);
+    }
+
+    private Location findSafeTeleportLocation(Location bossLocation) {
+        World world = bossLocation.getWorld();
+        for (int radius = 3; radius <= 7; radius++) {
+            for (int dx = -radius; dx <= radius; dx++) {
+                for (int dz = -radius; dz <= radius; dz++) {
+                    if (Math.max(Math.abs(dx), Math.abs(dz)) != radius) continue;
+                    Location candidate = bossLocation.clone().add(dx + 0.5, 0, dz + 0.5);
+                    if (candidate.getBlock().isPassable()
+                        && candidate.clone().add(0, 1, 0).getBlock().isPassable()
+                        && candidate.clone().subtract(0, 1, 0).getBlock().getType().isSolid()) {
+                        candidate.setYaw(bossLocation.getYaw());
+                        candidate.setPitch(bossLocation.getPitch());
+                        return candidate;
+                    }
+                }
+            }
+        }
+        return null;
     }
 
     private String dimensionName(World world) {
