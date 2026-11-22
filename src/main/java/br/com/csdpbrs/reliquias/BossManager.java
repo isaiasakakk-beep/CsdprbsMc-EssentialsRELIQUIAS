@@ -297,6 +297,22 @@ public final class BossManager implements Listener {
     }
 
     @EventHandler
+    public void onPlayerJoin(org.bukkit.event.player.PlayerJoinEvent event) {
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            Player player = event.getPlayer();
+            for (World world : Bukkit.getWorlds()) {
+                boolean rareAlive = world.getEntities().stream().anyMatch(entity ->
+                    "raro".equals(entity.getPersistentDataContainer().get(
+                        new org.bukkit.NamespacedKey(plugin, "boss_rarity"), PersistentDataType.STRING)));
+                if (rareAlive) {
+                    giveTrackerCompass(player);
+                    return;
+                }
+            }
+        });
+    }
+
+    @EventHandler
     public void onTrackerCompass(PlayerInteractEvent event) {
         if (event.getAction() != Action.RIGHT_CLICK_AIR && event.getAction() != Action.RIGHT_CLICK_BLOCK) return;
         ItemStack item = event.getItem();
