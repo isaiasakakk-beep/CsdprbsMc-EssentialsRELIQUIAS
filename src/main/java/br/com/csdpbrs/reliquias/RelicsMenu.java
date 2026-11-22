@@ -107,7 +107,7 @@ public final class RelicsMenu implements Listener {
         RelicCatalog.Relic reward = missing.get(ThreadLocalRandom.current().nextInt(missing.size()));
         removeFragments(player, fragmentKey, cost);
         plugin.registerOwned(player, reward.id());
-        player.getInventory().addItem(plugin.createRelic(reward));
+        plugin.giveOrDrop(player, plugin.createRelic(reward));
         player.sendMessage(ReliquiasPlugin.color("&6✦ &aVocê forjou: " + rarity.color + "&l" + reward.name() + "&a!"));
         player.playSound(player.getLocation(), org.bukkit.Sound.BLOCK_AMETHYST_BLOCK_CHIME, 1f, 1.4f);
         openSmith(player);
