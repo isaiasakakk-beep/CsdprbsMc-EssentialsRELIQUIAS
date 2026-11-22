@@ -16,13 +16,9 @@ import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.util.Vector;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
 
 public final class RelicAbilityListener implements Listener {
     private final ReliquiasPlugin plugin;
-    private final Map<UUID, Map<String, Long>> cooldowns = new HashMap<>();
 
     public RelicAbilityListener(ReliquiasPlugin plugin) { this.plugin = plugin; }
 
@@ -41,7 +37,9 @@ public final class RelicAbilityListener implements Listener {
         if (relic == null) return;
 
         long now = System.currentTimeMillis();
-        long readyAt = cooldowns.getOrDefault(player.getUniqueId(), Map.of()).getOrDefault(id, 0L);
+        var cooldownKey = new org.bukkit.NamespacedKey(plugin, "relic_cd_" + id);
+        long readyAt = player.getPersistentDataContainer().getOrDefault(
+            cooldownKey, PersistentDataType.LONG, 0L);
         if (now < readyAt) {
             long seconds = Math.max(1, (readyAt - now + 999) / 1000);
             player.sendMessage(ReliquiasPlugin.color("&cEssa relíquia recarrega em &f" + seconds + "s&c."));
@@ -54,7 +52,7 @@ public final class RelicAbilityListener implements Listener {
             return;
         }
         long cooldown = cooldownSeconds(relic.cooldown());
-        cooldowns.computeIfAbsent(player.getUniqueId(), key -> new HashMap<>()).put(id, now + cooldown * 1000L);
+        player.getPersistentDataContainer().set(cooldownKey, PersistentDataType.LONG, now + cooldown * 1000L);
         player.getWorld().playSound(player.getLocation(), Sound.BLOCK_AMETHYST_BLOCK_CHIME, 0.8f, 1.25f);
         player.sendMessage(ReliquiasPlugin.color("&d✦ &f" + relic.name() + " &dativada!"));
     }
