@@ -35,6 +35,7 @@ public final class RelicsMenu implements Listener {
         inv.setItem(29, entry(Material.NETHER_STAR, "&e&lGUIA DE CHEFES", "&7Raros: explorando o mundo normal", "&5Épicos: cavernas", "&cMíticos: Nether", "&6Lendários: End"));
         inv.setItem(31, entry(Material.BOOK, "&b&lMINHAS RELÍQUIAS", "&7Veja as relíquias que você já conquistou", "&8Clique para abrir sua coleção"));
         inv.setItem(33, entry(Material.EMERALD, "&a&lFORJADOR DE RELÍQUIAS", "&7Troque fragmentos por relíquias", "&8Clique para negociar"));
+        inv.setItem(35, entry(Material.WRITABLE_BOOK, "&e&lMISSÕES", "&7Complete desafios difíceis", "&7e ganhe fragmentos de raridade."));
         player.openInventory(inv);
     }
 
@@ -148,11 +149,12 @@ public final class RelicsMenu implements Listener {
 
     @EventHandler public void onMenuClick(InventoryClickEvent event) {
         String title = event.getView().getTitle();
-        if (!title.equals(TITLE) && !title.startsWith(PREFIX) && !title.equals(SMITH_TITLE) && !title.equals(COLLECTION_TITLE)) return;
+        if (!title.equals(TITLE) && !title.startsWith(PREFIX) && !title.equals(SMITH_TITLE) && !title.equals(COLLECTION_TITLE) && !plugin.missions().isMissionMenu(title)) return;
         event.setCancelled(true);
         if (!(event.getWhoClicked() instanceof Player player) || event.getClickedInventory() == null
             || event.getClickedInventory() != event.getView().getTopInventory()) return;
         int slot = event.getSlot();
+        if (plugin.missions().isMissionMenu(title)) { if (slot == 10 || slot == 13 || slot == 16) plugin.missions().handleClick(player, slot); return; }
         if (title.equals(SMITH_TITLE)) {
             switch (slot) {
                 case 10 -> forge(player, RelicCatalog.Rarity.RARO);
@@ -173,6 +175,7 @@ public final class RelicsMenu implements Listener {
                 case 29 -> player.sendMessage(ReliquiasPlugin.color("&eGuia: &fRaros no mundo normal, épicos nas cavernas, míticos no Nether e lendários no End."));
                 case 31 -> openCollection(player);
                 case 33 -> openSmith(player);
+                case 35 -> plugin.missions().open(player);
                 default -> { }
             }
         } else if (slot == 49) open(player);
@@ -180,7 +183,7 @@ public final class RelicsMenu implements Listener {
 
     @EventHandler public void onMenuDrag(InventoryDragEvent event) {
         String title = event.getView().getTitle();
-        if (title.equals(TITLE) || title.startsWith(PREFIX) || title.equals(SMITH_TITLE) || title.equals(COLLECTION_TITLE))
+        if (title.equals(TITLE) || title.startsWith(PREFIX) || title.equals(SMITH_TITLE) || title.equals(COLLECTION_TITLE) || plugin.missions().isMissionMenu(title))
             event.setCancelled(true);
     }
 
