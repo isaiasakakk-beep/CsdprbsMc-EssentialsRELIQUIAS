@@ -62,7 +62,7 @@ public final class BossManager implements Listener {
     public boolean spawnNow(String rarity) {
         String path = "bosses." + rarity;
         if (!plugin.getConfig().contains(path)) return false;
-        List<Player> onlinePlayers = Bukkit.getOnlinePlayers().stream().toList();
+        List<? extends Player> onlinePlayers = Bukkit.getOnlinePlayers().stream().toList();
         if (onlinePlayers.isEmpty()) return false;
         Player anchor = onlinePlayers.get(ThreadLocalRandom.current().nextInt(onlinePlayers.size()));
         World world = anchor.getWorld();
