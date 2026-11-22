@@ -10,8 +10,8 @@ Plugin independente para Paper 26.3, com chefes, fragmentos, relíquias colecion
 - Quatro raridades com identidade visual: branco, roxo, vermelho e laranja.
 - Poderes ativados com clique direito e cooldown individual.
 - Quatro chefes com aparência e atributos configuráveis.
-- Barra de vida dos chefes, habilidades especiais por raridade e locais de surgimento validados.
-- Avisos alternados: nome + dimensão ou aviso genérico sem localização.
+- Barra de vida dos chefes, habilidades especiais por raridade e surgimento em posições seguras próximas de jogadores online, em qualquer dimensão/mundo carregado.
+- Avisos globais para todos os jogadores quando qualquer chefe surge; somente o chefe raro revela mundo e coordenadas exatas.
 - Fragmentos próprios de cada raridade como recompensa dos chefes.
 - NPC Forjador com trocas por fragmentos e entrega de relíquias ainda não conquistadas.
 - Missões persistentes com recompensas de fragmentos:
@@ -29,9 +29,7 @@ Plugin independente para Paper 26.3, com chefes, fragmentos, relíquias colecion
 
 ## Configuração
 
-Edite `plugins/CSDPBRS-ESSENTIALS-RELIQUIAS/config.yml` para ajustar mundos, intervalos, vida, dano, entidades, quantidade de fragmentos e custos do Forjador.
-
-Os mundos padrão são `world`, `world_nether` e `world_the_end`. Altere os nomes se seu servidor usar outra configuração.
+Edite `plugins/CSDPBRS-ESSENTIALS-RELIQUIAS/config.yml` para ajustar intervalos, raio de surgimento, vida, dano, entidades, quantidade de fragmentos e custos do Forjador. O chefe raro tem intervalo máximo de 10 minutos; os demais mantêm seus intervalos configurados. Os chefes surgem no mundo/dimensão de um jogador online, a uma distância configurável, em uma posição segura.
 
 ## Comandos administrativos
 
