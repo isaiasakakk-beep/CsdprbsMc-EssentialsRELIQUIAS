@@ -18,6 +18,7 @@ Plugin independente para Paper 26.3, com chefes, fragmentos, relíquias colecion
   - Caçador de Criaturas: elimine 50 criaturas hostis para receber 8 fragmentos raros.
   - Minerador das Profundezas: minere 96 minérios para receber 8 fragmentos épicos.
   - Caçador de Chefes: derrote 3 chefes de relíquias para receber 8 fragmentos míticos.
+  - Soberano das Relíquias: derrote 10 chefes de relíquias para receber 8 fragmentos lendários.
 - Menus protegidos contra movimentação de itens.
 
 ## Requisitos
