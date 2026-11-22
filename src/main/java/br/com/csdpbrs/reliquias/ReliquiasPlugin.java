@@ -11,6 +11,7 @@ public final class ReliquiasPlugin extends JavaPlugin {
     private RelicsMenu menu;
     private BossManager bossManager;
     private RelicSmithNpc smithNpc;
+    private RelicAbilityListener abilityListener;
 
     @Override
     public void onEnable() {
@@ -19,6 +20,8 @@ public final class ReliquiasPlugin extends JavaPlugin {
         menu = new RelicsMenu(this);
         getServer().getPluginManager().registerEvents(menu, this);
         getServer().getPluginManager().registerEvents(new RelicsListener(this), this);
+        abilityListener = new RelicAbilityListener(this);
+        getServer().getPluginManager().registerEvents(abilityListener, this);
         smithNpc = new RelicSmithNpc(this);
         getServer().getPluginManager().registerEvents(smithNpc, this);
         bossManager = new BossManager(this);
@@ -47,6 +50,22 @@ public final class ReliquiasPlugin extends JavaPlugin {
         return item;
     }
 
+    public org.bukkit.inventory.ItemStack createRelic(RelicCatalog.Relic relic) {
+        var item = new org.bukkit.inventory.ItemStack(relic.icon());
+        var meta = item.getItemMeta();
+        meta.setDisplayName(color(relic.rarity().color + "&l" + relic.name()));
+        meta.setLore(java.util.List.of(
+            color("&7" + relic.power()),
+            color("&7Recarga: &f" + relic.cooldown()),
+            color("&eClique com o botão direito para ativar."),
+            color("&8Relíquia: " + relic.id())
+        ));
+        meta.getPersistentDataContainer().set(new NamespacedKey(this, "relic_id"),
+            org.bukkit.persistence.PersistentDataType.STRING, relic.id());
+        item.setItemMeta(meta);
+        return item;
+    }
+
     public static String color(String text) {
         return ChatColor.translateAlternateColorCodes('&', text == null ? "" : text);
     }
@@ -60,6 +79,7 @@ public final class ReliquiasPlugin extends JavaPlugin {
         }
         if (args.length == 0) {
             sender.sendMessage(color("&6/reliquias relogio <jogador>"));
+            sender.sendMessage(color("&6/reliquias give <jogador> <id>"));
             sender.sendMessage(color("&6/reliquias reload"));
             sender.sendMessage(color("&6/reliquias boss <raridade>"));
             sender.sendMessage(color("&6/reliquias npc"));
@@ -75,6 +95,18 @@ public final class ReliquiasPlugin extends JavaPlugin {
             if (target == null) { sender.sendMessage(color("&cJogador não encontrado.")); return true; }
             target.getInventory().addItem(createClock());
             sender.sendMessage(color("&aRelógio entregue para " + target.getName() + "."));
+            return true;
+        }
+        if (args[0].equalsIgnoreCase("give") && args.length >= 3) {
+            var target = getServer().getPlayerExact(args[1]);
+            if (target == null) { sender.sendMessage(color("&cJogador não encontrado.")); return true; }
+            var relic = RelicCatalog.all().stream().filter(r -> r.id().equalsIgnoreCase(args[2])).findFirst().orElse(null);
+            if (relic == null) {
+                sender.sendMessage(color("&cID inválido. IDs: " + String.join(", ", RelicCatalog.all().stream().map(RelicCatalog.Relic::id).toList())));
+                return true;
+            }
+            target.getInventory().addItem(createRelic(relic));
+            sender.sendMessage(color("&aRelíquia &f" + relic.name() + " &aentregue para " + target.getName() + "."));
             return true;
         }
         if (args[0].equalsIgnoreCase("npc")) {
