@@ -327,7 +327,7 @@ public final class BossManager implements Listener {
             int x = origin.getBlockX() + dx;
             int z = origin.getBlockZ() + dz;
             int y = (world.getEnvironment() == World.Environment.NETHER
-                || world.getEnvironment() == World.Environment.NORMAL && origin.getBlockY() < world.getHighestBlockYAt(origin) - 2)
+                || world.getEnvironment() == World.Environment.NORMAL && origin.getBlockY() < world.getHighestBlockYAt(origin.getBlockX(), origin.getBlockZ()) - 2)
                 ? origin.getBlockY() + ThreadLocalRandom.current().nextInt(-3, 4)
                 : world.getHighestBlockYAt(x, z) + 1;
             y = Math.max(world.getMinHeight() + 2, Math.min(world.getMaxHeight() - 3, y));
