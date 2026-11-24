@@ -11,6 +11,7 @@ import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.NamespacedKey;
 import java.util.ArrayList;
@@ -113,6 +114,65 @@ public final class RelicsMenu implements Listener {
         openSmith(player);
     }
 
+    private void startSpin(Player player) {
+        final int cost = plugin.getConfig().getInt("smith.spin-cost", 8);
+        List<RelicCatalog.Relic> missing = RelicCatalog.all().stream()
+            .filter(relic -> !plugin.owns(player, relic.id())).toList();
+        if (missing.isEmpty()) {
+            player.sendMessage(ReliquiasPlugin.color("&aVocê já conquistou todas as relíquias disponíveis!"));
+            return;
+        }
+        int available = countFragments(player, "raro");
+        if (available < cost) {
+            player.sendMessage(ReliquiasPlugin.color("&cVocê precisa de &f" + cost
+                + " fragmentos raros&c. Você possui &f" + available + "&c."));
+            return;
+        }
+
+        int totalWeight = missing.stream().mapToInt(RelicCatalog.Relic::chanceWeight).sum();
+        int roll = ThreadLocalRandom.current().nextInt(Math.max(1, totalWeight));
+        RelicCatalog.Relic reward = missing.get(0);
+        for (RelicCatalog.Relic candidate : missing) {
+            roll -= candidate.chanceWeight();
+            if (roll < 0) { reward = candidate; break; }
+        }
+
+        removeFragments(player, "raro", cost);
+        Inventory spin = Bukkit.createInventory(null, 27, ReliquiasPlugin.color("&8&lROLETА DE RELÍQUIAS"));
+        ItemStack pane = entry(Material.BLACK_STAINED_GLASS_PANE, " ");
+        for (int i=0;i<27;i++) if (i<9 || i>=18 || i%9==0 || i%9==8) spin.setItem(i,pane);
+        player.openInventory(spin);
+
+        final RelicCatalog.Relic finalReward = reward;
+        new BukkitRunnable() {
+            int step = 0;
+            int slot = 10;
+            @Override public void run() {
+                if (!player.isOnline()) { cancel(); return; }
+                RelicCatalog.Relic preview = RelicCatalog.all().get(ThreadLocalRandom.current().nextInt(RelicCatalog.all().size()));
+                spin.setItem(slot, entry(preview.icon(), preview.rarity().color + "&l" + preview.name(),
+                    "&7" + preview.category(), "&7A roleta está girando..."));
+                spin.setItem(13, entry(Material.CLOCK, "&e&lSORTEANDO...", "&7Aguarde o resultado."));
+                slot++;
+                if (slot > 16) slot = 10;
+                step++;
+                if (step >= 32) {
+                    cancel();
+                    spin.setItem(13, entry(finalReward.icon(), finalReward.rarity().color + "&l" + finalReward.name(),
+                        "&7Categoria: &f" + finalReward.category(),
+                        "&7" + finalReward.power(),
+                        "&aRelíquia conquistada!"));
+                    plugin.registerOwned(player, finalReward.id());
+                    plugin.giveOrDrop(player, plugin.createRelic(finalReward));
+                    player.playSound(player.getLocation(), org.bukkit.Sound.UI_TOAST_CHALLENGE_COMPLETE, 1f, 1.15f);
+                    player.sendMessage(ReliquiasPlugin.color("&6✦ &aA roleta parou em: "
+                        + finalReward.rarity().color + "&l" + finalReward.name() + "&a!"));
+                    Bukkit.getScheduler().runTaskLater(plugin, () -> openSmith(player), 50L);
+                }
+            }
+        }.runTaskTimer(plugin, 0L, 2L);
+    }
+
     private int countFragments(Player player, String rarity) {
         NamespacedKey key = new NamespacedKey(plugin, "fragment_rarity");
         int total = 0;
@@ -156,13 +216,7 @@ public final class RelicsMenu implements Listener {
         int slot = event.getSlot();
         if (plugin.missions().isMissionMenu(title)) { if (slot == 10 || slot == 12 || slot == 14 || slot == 16) plugin.missions().handleClick(player, slot); return; }
         if (title.equals(SMITH_TITLE)) {
-            switch (slot) {
-                case 10 -> forge(player, RelicCatalog.Rarity.RARO);
-                case 12 -> forge(player, RelicCatalog.Rarity.EPICO);
-                case 14 -> forge(player, RelicCatalog.Rarity.MITICO);
-                case 16 -> forge(player, RelicCatalog.Rarity.LENDARIO);
-                default -> { }
-            }
+            if (slot == 13) startSpin(player);
             return;
         }
         if (title.equals(COLLECTION_TITLE)) { if (slot == 49) open(player); return; }
