@@ -24,6 +24,8 @@ public final class RelicsMenu implements Listener {
     private static final String PREFIX = ReliquiasPlugin.color("&8&lRELIQUIAS | ");
     private static final String SMITH_TITLE = ReliquiasPlugin.color("&8&lFORJADOR DE RELÍQUIAS");
     private static final String COLLECTION_TITLE = ReliquiasPlugin.color("&8&lMINHAS RELÍQUIAS");
+    private static final String SPIN_TITLE = ReliquiasPlugin.color("&8&lROLETA DE RELÍQUIAS");
+    private final java.util.Set<java.util.UUID> spinning = java.util.concurrent.ConcurrentHashMap.newKeySet();
     public RelicsMenu(ReliquiasPlugin plugin) { this.plugin = plugin; }
 
     public void open(Player player) {
@@ -64,11 +66,11 @@ public final class RelicsMenu implements Listener {
         inv.setItem(13, entry(Material.CLOCK, "&d&lROULETA DE RELÍQUIAS",
             "&7Custo: &f8 fragmentos raros",
             "&7Animação de inventário em sequência.",
-            "&7Recompensa garantida: próxima relíquia não obtida.",
+            "&7Chance por raridade: 60% / 25% / 11% / 4%.",
             "&eClique para começar!"));
         inv.setItem(22, entry(Material.BOOK, "&e&lCOMO FUNCIONA",
             "&7A roleta percorre os itens no inventário.",
-            "&7A recompensa é garantida e previsível.",
+            "&7Raras são mais comuns; lendárias são mais difíceis.",
             "&7Você conquista cada relíquia uma única vez.",
             "&7Os fragmentos só são consumidos após validar a troca."));
         player.openInventory(inv);
@@ -110,7 +112,7 @@ public final class RelicsMenu implements Listener {
                 + "&c. Você possui &f" + available + "&c."));
             return;
         }
-        RelicCatalog.Relic reward = missing.get(0);
+        RelicCatalog.Relic reward = chooseWeightedReward(missing);
         removeFragments(player, fragmentKey, cost);
         plugin.registerOwned(player, reward.id());
         plugin.giveOrDrop(player, plugin.createRelic(reward));
@@ -134,11 +136,15 @@ public final class RelicsMenu implements Listener {
             return;
         }
 
-        // Recompensa previsível: a roleta é apenas uma animação, sem sorteio de prêmio.
-        RelicCatalog.Relic reward = missing.get(0);
+        // Sorteio ponderado por raridade; raridades esgotadas redistribuem seu peso.
+        if (!spinning.add(player.getUniqueId())) {
+            player.sendMessage(ReliquiasPlugin.color("&cSua roleta já está em andamento."));
+            return;
+        }
+        RelicCatalog.Relic reward = chooseWeightedReward(missing);
 
         removeFragments(player, "raro", cost);
-        Inventory spin = Bukkit.createInventory(null, 27, ReliquiasPlugin.color("&8&lROLETА DE RELÍQUIAS"));
+        Inventory spin = Bukkit.createInventory(null, 27, SPIN_TITLE);
         ItemStack pane = entry(Material.BLACK_STAINED_GLASS_PANE, " ");
         for (int i=0;i<27;i++) if (i<9 || i>=18 || i%9==0 || i%9==8) spin.setItem(i,pane);
         player.openInventory(spin);
@@ -148,7 +154,7 @@ public final class RelicsMenu implements Listener {
             int step = 0;
             int slot = 10;
             @Override public void run() {
-                if (!player.isOnline()) { cancel(); return; }
+                if (!player.isOnline()) { spinning.remove(player.getUniqueId()); cancel(); return; }
                 RelicCatalog.Relic preview = RelicCatalog.all().get(step % RelicCatalog.all().size());
                 spin.setItem(slot, entry(preview.icon(), preview.rarity().color + "&l" + preview.name(),
                     "&7" + preview.category(), "&7A roleta está girando..."));
@@ -158,6 +164,7 @@ public final class RelicsMenu implements Listener {
                 step++;
                 if (step >= 32) {
                     cancel();
+                    spinning.remove(player.getUniqueId());
                     spin.setItem(13, entry(finalReward.icon(), finalReward.rarity().color + "&l" + finalReward.name(),
                         "&7Categoria: &f" + finalReward.category(),
                         "&7" + finalReward.power(),
@@ -171,6 +178,26 @@ public final class RelicsMenu implements Listener {
                 }
             }
         }.runTaskTimer(plugin, 0L, 2L);
+    }
+
+    private RelicCatalog.Relic chooseWeightedReward(List<RelicCatalog.Relic> candidates) {
+        int totalWeight = 0;
+        for (RelicCatalog.Relic relic : candidates) totalWeight += rarityWeight(relic.rarity());
+        int roll = ThreadLocalRandom.current().nextInt(totalWeight);
+        for (RelicCatalog.Relic relic : candidates) {
+            roll -= rarityWeight(relic.rarity());
+            if (roll < 0) return relic;
+        }
+        return candidates.get(candidates.size() - 1);
+    }
+
+    private int rarityWeight(RelicCatalog.Rarity rarity) {
+        return switch (rarity) {
+            case RARO -> 60;
+            case EPICO -> 25;
+            case MITICO -> 11;
+            case LENDARIO -> 4;
+        };
     }
 
     private int countFragments(Player player, String rarity) {
@@ -209,11 +236,12 @@ public final class RelicsMenu implements Listener {
 
     @EventHandler public void onMenuClick(InventoryClickEvent event) {
         String title = event.getView().getTitle();
-        if (!title.equals(TITLE) && !title.startsWith(PREFIX) && !title.equals(SMITH_TITLE) && !title.equals(COLLECTION_TITLE) && !plugin.missions().isMissionMenu(title)) return;
+        if (!title.equals(TITLE) && !title.startsWith(PREFIX) && !title.equals(SMITH_TITLE) && !title.equals(COLLECTION_TITLE) && !title.equals(SPIN_TITLE) && !plugin.missions().isMissionMenu(title)) return;
         event.setCancelled(true);
         if (!(event.getWhoClicked() instanceof Player player) || event.getClickedInventory() == null
             || event.getClickedInventory() != event.getView().getTopInventory()) return;
         int slot = event.getSlot();
+        if (title.equals(SPIN_TITLE)) return;
         if (plugin.missions().isMissionMenu(title)) { if (slot == 10 || slot == 12 || slot == 14 || slot == 16) plugin.missions().handleClick(player, slot); return; }
         if (title.equals(SMITH_TITLE)) {
             if (slot == 13) startSpin(player);
@@ -237,7 +265,7 @@ public final class RelicsMenu implements Listener {
 
     @EventHandler public void onMenuDrag(InventoryDragEvent event) {
         String title = event.getView().getTitle();
-        if (title.equals(TITLE) || title.startsWith(PREFIX) || title.equals(SMITH_TITLE) || title.equals(COLLECTION_TITLE) || plugin.missions().isMissionMenu(title))
+        if (title.equals(TITLE) || title.startsWith(PREFIX) || title.equals(SMITH_TITLE) || title.equals(COLLECTION_TITLE) || title.equals(SPIN_TITLE) || plugin.missions().isMissionMenu(title))
             event.setCancelled(true);
     }
 
