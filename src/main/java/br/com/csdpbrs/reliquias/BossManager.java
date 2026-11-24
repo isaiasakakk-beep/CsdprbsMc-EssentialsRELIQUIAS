@@ -5,6 +5,7 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Particle;
 import org.bukkit.World;
+import org.bukkit.block.Biome;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.boss.BarColor;
 import org.bukkit.boss.BarStyle;
@@ -35,7 +36,7 @@ public final class BossManager implements Listener {
     private final ReliquiasPlugin plugin;
     private int taskId = -1;
     private boolean nextAnnouncementIsDetailed = true;
-    private final Map<String, Long> nextSpawn = new ConcurrentHashMap<>();
+    private final Map<String, Integer> desiredPopulation = new ConcurrentHashMap<>();
     private final Map<UUID, BossBar> bars = new ConcurrentHashMap<>();
     private final Map<UUID, Long> nextSkill = new ConcurrentHashMap<>();
 
@@ -55,19 +56,29 @@ public final class BossManager implements Listener {
 
     private void checkSpawns() {
         for (String rarity : List.of("raro", "epico", "mitico", "lendario")) {
-            if (!plugin.getConfig().getBoolean("bosses." + rarity + ".enabled", true)) continue;
-            long readyAt = nextSpawn.getOrDefault(rarity, plugin.getConfig().getLong("bosses." + rarity + ".next-spawn-at", 0L));
-            if (System.currentTimeMillis() < readyAt || countAlive(rarity) > 0) continue;
-            spawnNow(rarity);
+            String path = "bosses." + rarity;
+            if (!plugin.getConfig().getBoolean(path + ".enabled", true)) continue;
+            int min = Math.max(1, plugin.getConfig().getInt(path + ".population-min", 5));
+            int max = Math.max(min, plugin.getConfig().getInt(path + ".population-max", 8));
+            int target = desiredPopulation.computeIfAbsent(rarity,
+                key -> ThreadLocalRandom.current().nextInt(min, max + 1));
+            int alive = countAlive(rarity);
+            int attempts = 0;
+            while (alive < target && attempts++ < target * 4) {
+                if (!spawnNow(rarity)) break;
+                alive = countAlive(rarity);
+            }
         }
     }
 
     public boolean spawnNow(String rarity) {
         String path = "bosses." + rarity;
         if (!plugin.getConfig().contains(path)) return false;
-        List<? extends Player> onlinePlayers = Bukkit.getOnlinePlayers().stream().toList();
+        List<? extends Player> onlinePlayers = Bukkit.getOnlinePlayers().stream()
+            .filter(player -> allowedBiome(player.getLocation(), rarity)).toList();
         if (onlinePlayers.isEmpty()) return false;
         Player anchor = onlinePlayers.get(ThreadLocalRandom.current().nextInt(onlinePlayers.size()));
+        boolean firstInPack = countAlive(rarity) == 0;
         World world = anchor.getWorld();
         int attempts = Math.max(1, plugin.getConfig().getInt("spawn.maximum-attempts", 48));
         for (int i = 0; i < attempts; i++) {
@@ -90,14 +101,11 @@ public final class BossManager implements Listener {
             boss.getPersistentDataContainer().set(new org.bukkit.NamespacedKey(plugin, "boss_rarity"), PersistentDataType.STRING, rarity);
             styleBoss(boss, rarity);
             createBar(boss, rarity);
-            long respawnMinutes = plugin.getConfig().getLong(path + ".respawn-minutes", rarity.equals("raro") ? 20 : 30);
-            long next = System.currentTimeMillis() + respawnMinutes * 60_000L;
-            nextSpawn.put(rarity, next);
-            plugin.getConfig().set(path + ".next-spawn-at", next);
-            plugin.saveConfig();
-            announce(boss, rarity);
-            if (rarity.equals("raro")) {
-                for (Player player : Bukkit.getOnlinePlayers()) giveTrackerCompass(player);
+            if (firstInPack) {
+                announce(boss, rarity);
+                if (rarity.equals("raro")) {
+                    for (Player player : Bukkit.getOnlinePlayers()) giveTrackerCompass(player);
+                }
             }
             return true;
         }
@@ -149,23 +157,31 @@ public final class BossManager implements Listener {
         gear.setChestplate(new ItemStack(armor));
         gear.setLeggings(new ItemStack(rarity.equals("lendario") ? Material.NETHERITE_LEGGINGS : rarity.equals("mitico") ? Material.DIAMOND_LEGGINGS : Material.IRON_LEGGINGS));
         gear.setBoots(new ItemStack(rarity.equals("lendario") ? Material.NETHERITE_BOOTS : rarity.equals("mitico") ? Material.DIAMOND_BOOTS : Material.IRON_BOOTS));
-        Material weapon = switch (rarity) {
-            case "raro" -> Material.IRON_AXE;
-            case "epico" -> Material.DIAMOND_AXE;
-            case "mitico" -> Material.DIAMOND_SWORD;
-            default -> Material.NETHERITE_SWORD;
-        };
-        gear.setItemInMainHand(new ItemStack(weapon));
         gear.setHelmetDropChance(0f); gear.setChestplateDropChance(0f);
         gear.setLeggingsDropChance(0f); gear.setBootsDropChance(0f);
         gear.setItemInMainHandDropChance(0f);
     }
 
     private boolean validLocation(Location loc, String rarity) {
+        if (!allowedBiome(loc, rarity)) return false;
         if (!loc.getBlock().isPassable() || !loc.clone().add(0, 1, 0).getBlock().isPassable()) return false;
         if (loc.clone().subtract(0, 1, 0).getBlock().isPassable()) return false;
         if (loc.getWorld().getPlayers().stream().anyMatch(p -> p.getLocation().distanceSquared(loc) < Math.pow(plugin.getConfig().getInt("spawn.minimum-distance-between-players", 24), 2))) return false;
         return true;
+    }
+
+    private boolean allowedBiome(Location location, String rarity) {
+        World.Environment environment = location.getWorld().getEnvironment();
+        Biome biome = location.getBlock().getBiome();
+        return switch (rarity) {
+            case "raro" -> environment == World.Environment.NORMAL
+                && (biome == Biome.CHERRY_GROVE || biome == Biome.PLAINS);
+            case "epico" -> environment == World.Environment.NORMAL
+                && (biome == Biome.DRIPSTONE_CAVES || biome == Biome.LUSH_CAVES || biome == Biome.DEEP_DARK);
+            case "mitico" -> environment == World.Environment.NETHER;
+            case "lendario" -> environment == World.Environment.THE_END;
+            default -> false;
+        };
     }
 
     private int countAlive(String rarity) {
