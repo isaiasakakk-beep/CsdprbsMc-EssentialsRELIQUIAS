@@ -1,46 +1,45 @@
 # CSDPBRS ESSENTIALS RELIQUIAS
 
-Plugin independente para Paper 26.3, com chefes, fragmentos, relíquias colecionáveis, missões e o NPC Forjador.
+Plugin Paper 26.3 com coleção de relíquias, Forjador, chefes persistentes e fragmentos.
 
-## Sistemas implementados
+## Mega atualização
 
-- Relógio das Relíquias entregue na primeira entrada do jogador.
-- Menus Bukkit por inventário, compatíveis com Java e Bedrock via Geyser/Floodgate.
-- Coleção persistente de 20 relíquias: 5 raras, 5 épicas, 5 míticas e 5 lendárias.
-- Quatro raridades com identidade visual: branco, roxo, vermelho e laranja.
-- Poderes ativados com clique direito e cooldown individual.
-- Quatro chefes com aparência e atributos configuráveis.
-- Barra de vida dos chefes, habilidades especiais por raridade e surgimento em posições seguras próximas de jogadores online, em qualquer dimensão/mundo carregado.
-- Avisos globais para todos os jogadores quando qualquer chefe surge; somente o chefe raro revela mundo e coordenadas exatas.
-- Fragmentos próprios de cada raridade como recompensa dos chefes.
-- NPC Forjador com trocas por fragmentos e entrega de relíquias ainda não conquistadas.
-- Missões persistentes com recompensas de fragmentos:
-  - Caçador de Criaturas: elimine 50 criaturas hostis para receber 8 fragmentos raros.
-  - Minerador das Profundezas: minere 96 minérios para receber 8 fragmentos épicos.
-  - Caçador de Chefes: derrote 3 chefes de relíquias para receber 8 fragmentos míticos.
-  - Soberano das Relíquias: derrote 10 chefes de relíquias para receber 8 fragmentos lendários.
-- Menus protegidos contra movimentação de itens.
+- O catálogo antigo foi substituído por 20 relíquias organizadas em quatro raridades.
+- Categorias: Utilidade, Exploração, Mobilidade, Sobrevivência, Ocultação e Visual.
+- Poderes passivos: Fazendeiro, Minerador, Invisibilidade e Nether.
+- Poderes ativáveis: Sorte, Explorador, Explorador do Nether, Explorador 2.0, Espião, Palhaço, Deus do Vento, Imortalidade, Defesa, Resistência, Dragão, Warden, Stomper, Bizonho, Bizonho 2.0 e Deus.
+- A Relíquia do Warden usa um pulso de eco para revelar criaturas próximas; não causa dano.
+- O Forjador possui animação de roleta no inventário. A recompensa é garantida: a animação termina na próxima relíquia ainda não conquistada.
+- O Relógio das Relíquias é restaurado após a morte.
+- Os menus de coleção e guia mostram categoria, poder e raridade.
+
+## Chefes e fragmentos
+
+- A população é mantida entre 5 e 8 chefes por raridade nas áreas elegíveis com jogadores explorando.
+- Raro: biomas Cherry Grove e Plains.
+- Épico: Dripstone Caves, Lush Caves e Deep Dark.
+- Mítico: qualquer bioma do Nether.
+- Lendário: dimensão do End.
+- Os chefes receberam redução de vida e dano para equilibrar os grupos.
+- Todos os chefes garantem fragmentos raros. Existe chance pequena de receber também fragmentos de raridade superior.
+- O aviso do primeiro surgimento de cada grupo é global; o Guardião Raro revela coordenadas e entrega a bússola de rastreamento.
 
 ## Requisitos
 
 - Paper 26.3
 - Java 25
-- Geyser/Floodgate para jogadores Bedrock (os menus usam inventários Bukkit).
-
-## Configuração
-
-Edite `plugins/CSDPBRS-ESSENTIALS-RELIQUIAS/config.yml` para ajustar intervalos, raio de surgimento, vida, dano, entidades, quantidade de fragmentos e custos do Forjador. O chefe raro tem intervalo máximo de 10 minutos; os demais mantêm seus intervalos configurados. Os chefes surgem no mundo/dimensão de um jogador online, a uma distância configurável, em uma posição segura.
+- Geyser/Floodgate para jogadores Bedrock. Os menus usam inventários Bukkit.
 
 ## Comandos administrativos
 
-- `/reliquias relogio <jogador>` — entrega outro Relógio.
-- `/reliquias give <jogador> <id>` — entrega uma relíquia e registra na coleção.
-- `/reliquias boss <raro|epico|mitico|lendario>` — tenta invocar um chefe.
-- `/reliquias npc` — cria o Forjador na posição do administrador.
-- `/reliquias reload` — recarrega a configuração.
+- /reliquias relogio <jogador> — entrega o Relógio.
+- /reliquias give <jogador> <id> — entrega uma relíquia e registra na coleção.
+- /reliquias boss <raro|epico|mitico|lendario> — tenta invocar um chefe.
+- /reliquias npc — cria o Forjador na posição do administrador.
+- /reliquias reload — recarrega a configuração.
 
-Permissão: `reliquias.admin` (OP por padrão).
+Permissão: reliquias.admin (OP por padrão).
 
 ## Compilação
 
-Com Gradle e Java 25: `gradle build`. O arquivo JAR é gerado em `build/libs/`. O GitHub Actions também compila o projeto e publica o JAR como artefato de cada execução bem-sucedida.
+Com Gradle e Java 25: gradle build. O JAR é gerado em build/libs/. O GitHub Actions compila o projeto e publica o JAR quando o build termina com sucesso.
