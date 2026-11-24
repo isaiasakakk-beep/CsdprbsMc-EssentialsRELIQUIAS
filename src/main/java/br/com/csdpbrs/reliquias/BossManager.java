@@ -157,6 +157,7 @@ public final class BossManager implements Listener {
         gear.setChestplate(new ItemStack(armor));
         gear.setLeggings(new ItemStack(rarity.equals("lendario") ? Material.NETHERITE_LEGGINGS : rarity.equals("mitico") ? Material.DIAMOND_LEGGINGS : Material.IRON_LEGGINGS));
         gear.setBoots(new ItemStack(rarity.equals("lendario") ? Material.NETHERITE_BOOTS : rarity.equals("mitico") ? Material.DIAMOND_BOOTS : Material.IRON_BOOTS));
+        gear.setItemInMainHand(new ItemStack(Material.AIR));
         gear.setHelmetDropChance(0f); gear.setChestplateDropChance(0f);
         gear.setLeggingsDropChance(0f); gear.setBootsDropChance(0f);
         gear.setItemInMainHandDropChance(0f);
