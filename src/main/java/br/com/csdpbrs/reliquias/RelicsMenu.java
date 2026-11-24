@@ -61,11 +61,16 @@ public final class RelicsMenu implements Listener {
         Inventory inv = Bukkit.createInventory(null, 27, SMITH_TITLE);
         ItemStack border = entry(Material.BLACK_STAINED_GLASS_PANE, " ");
         for (int i=0;i<27;i++) if (i<9 || i>=18 || i%9==0 || i%9==8) inv.setItem(i,border);
-        setTrade(inv, 10, RelicCatalog.Rarity.RARO, Material.QUARTZ, "&f&lFORJAR RELÍQUIA RARA");
-        setTrade(inv, 12, RelicCatalog.Rarity.EPICO, Material.AMETHYST_SHARD, "&5&lFORJAR RELÍQUIA ÉPICA");
-        setTrade(inv, 14, RelicCatalog.Rarity.MITICO, Material.REDSTONE_BLOCK, "&c&lFORJAR RELÍQUIA MÍTICA");
-        setTrade(inv, 16, RelicCatalog.Rarity.LENDARIO, Material.BLAZE_POWDER, "&6&lFORJAR RELÍQUIA LENDÁRIA");
-        inv.setItem(22, entry(Material.BOOK, "&e&lCOMO FUNCIONA", "&7Cada troca entrega uma relíquia aleatória", "&7da raridade escolhida que você ainda não possui.", "&7Fragmentos são consumidos somente após validar a troca."));
+        inv.setItem(13, entry(Material.CLOCK, "&d&lROULETA DE RELÍQUIAS",
+            "&7Custo: &f8 fragmentos raros",
+            "&7Animação de inventário em sequência.",
+            "&7Recompensa garantida: próxima relíquia não obtida.",
+            "&eClique para começar!"));
+        inv.setItem(22, entry(Material.BOOK, "&e&lCOMO FUNCIONA",
+            "&7A roleta percorre os itens no inventário.",
+            "&7A recompensa é garantida e previsível.",
+            "&7Você conquista cada relíquia uma única vez.",
+            "&7Os fragmentos só são consumidos após validar a troca."));
         player.openInventory(inv);
     }
 
