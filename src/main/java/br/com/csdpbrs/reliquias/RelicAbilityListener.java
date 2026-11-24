@@ -70,14 +70,14 @@ public final class RelicAbilityListener implements Listener {
                 player.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY, 45, 0, true, false, true));
             if ("nether".equals(id))
                 player.addPotionEffect(new PotionEffect(PotionEffectType.FIRE_RESISTANCE, 45, 0, true, false, true));
+            if ("fazendeiro".equals(id))
+                player.addPotionEffect(new PotionEffect(PotionEffectType.HERO_OF_THE_VILLAGE, 45, 0, true, false, true));
         }
 
         String main = relicId(player.getInventory().getItemInMainHand());
         String off = relicId(player.getInventory().getItemInOffHand());
         if ("minerador".equals(main) || "minerador".equals(off))
             player.addPotionEffect(new PotionEffect(PotionEffectType.HASTE, 45, 1, true, false, true));
-        if ("fazendeiro".equals(main) || "fazendeiro".equals(off))
-            player.addPotionEffect(new PotionEffect(PotionEffectType.HERO_OF_THE_VILLAGE, 45, 0, true, false, true));
     }
 
     private String relicId(ItemStack item) {
