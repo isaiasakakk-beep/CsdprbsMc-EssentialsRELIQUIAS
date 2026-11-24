@@ -181,14 +181,24 @@ public final class RelicsMenu implements Listener {
     }
 
     private RelicCatalog.Relic chooseWeightedReward(List<RelicCatalog.Relic> candidates) {
+        List<RelicCatalog.Rarity> availableRarities = new ArrayList<>();
         int totalWeight = 0;
-        for (RelicCatalog.Relic relic : candidates) totalWeight += rarityWeight(relic.rarity());
-        int roll = ThreadLocalRandom.current().nextInt(totalWeight);
-        for (RelicCatalog.Relic relic : candidates) {
-            roll -= rarityWeight(relic.rarity());
-            if (roll < 0) return relic;
+        for (RelicCatalog.Rarity rarity : RelicCatalog.Rarity.values()) {
+            if (candidates.stream().anyMatch(relic -> relic.rarity() == rarity)) {
+                availableRarities.add(rarity);
+                totalWeight += rarityWeight(rarity);
+            }
         }
-        return candidates.get(candidates.size() - 1);
+        int roll = ThreadLocalRandom.current().nextInt(totalWeight);
+        RelicCatalog.Rarity selected = availableRarities.get(availableRarities.size() - 1);
+        for (RelicCatalog.Rarity rarity : availableRarities) {
+            roll -= rarityWeight(rarity);
+            if (roll < 0) { selected = rarity; break; }
+        }
+        final RelicCatalog.Rarity selectedRarity = selected;
+        List<RelicCatalog.Relic> sameRarity = candidates.stream()
+            .filter(relic -> relic.rarity() == selectedRarity).toList();
+        return sameRarity.get(ThreadLocalRandom.current().nextInt(sameRarity.size()));
     }
 
     private int rarityWeight(RelicCatalog.Rarity rarity) {
