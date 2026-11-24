@@ -21,7 +21,7 @@ public final class RelicCatalog {
                         List<String> lore) {}
 
     private static final List<Relic> ALL = List.of(
-        new Relic("fazendeiro","Relíquia do Fazendeiro",Rarity.RARO,Material.WHEAT,"Utilidade","Concede Herói da Vila enquanto estiver equipada na mão secundária.","Passivo",List.of("&7A vila reconhece seu portador.")),
+        new Relic("fazendeiro","Relíquia do Fazendeiro",Rarity.RARO,Material.LEATHER_LEGGINGS,"Utilidade","Concede Herói da Vila enquanto estiver equipada nas pernas.","Passivo",List.of("&7A vila reconhece seu portador.")),
         new Relic("minerador","Relíquia do Minerador",Rarity.RARO,Material.DIAMOND_PICKAXE,"Utilidade","Concede pressa de mineração enquanto estiver na mão.","Passivo",List.of("&7Acelera o trabalho nas minas.")),
         new Relic("invisibilidade","Relíquia da Invisibilidade",Rarity.RARO,Material.LEATHER_BOOTS,"Ocultação","Concede invisibilidade enquanto estiver equipada nos pés.","Passivo",List.of("&7Oculta o portador de olhares curiosos.")),
         new Relic("nether","Relíquia do Nether",Rarity.RARO,Material.GOLDEN_HELMET,"Sobrevivência","Concede resistência ao fogo enquanto estiver equipada na cabeça.","Passivo",List.of("&7Guarda o calor do Nether.")),
