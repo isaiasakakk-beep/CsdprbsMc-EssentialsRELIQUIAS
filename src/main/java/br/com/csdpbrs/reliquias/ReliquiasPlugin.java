@@ -46,6 +46,23 @@ public final class ReliquiasPlugin extends JavaPlugin implements org.bukkit.even
         }
     }
 
+    @org.bukkit.event.EventHandler
+    public void onClockDeath(org.bukkit.event.entity.PlayerDeathEvent event) {
+        event.getDrops().removeIf(item -> item != null && item.hasItemMeta()
+            && item.getItemMeta().getPersistentDataContainer().has(clockKey, PersistentDataType.BYTE));
+    }
+
+    @org.bukkit.event.EventHandler
+    public void onClockRespawn(org.bukkit.event.player.PlayerRespawnEvent event) {
+        Bukkit.getScheduler().runTask(this, () -> {
+            var player = event.getPlayer();
+            boolean hasClock = java.util.Arrays.stream(player.getInventory().getContents())
+                .anyMatch(item -> item != null && item.hasItemMeta()
+                    && item.getItemMeta().getPersistentDataContainer().has(clockKey, PersistentDataType.BYTE));
+            if (!hasClock) giveOrDrop(player, createClock());
+        });
+    }
+
     @Override public void onDisable() { if (bossManager != null) bossManager.stop(); }
     public NamespacedKey clockKey() { return clockKey; }
     public NamespacedKey ownedKey() { return ownedKey; }
@@ -85,7 +102,7 @@ public final class ReliquiasPlugin extends JavaPlugin implements org.bukkit.even
         var item = new org.bukkit.inventory.ItemStack(relic.icon());
         var meta = item.getItemMeta();
         meta.setDisplayName(color(relic.rarity().color + "&l" + relic.name()));
-        meta.setLore(java.util.List.of(color("&7" + relic.power()), color("&7Recarga: &f" + relic.cooldown()),
+        meta.setLore(java.util.List.of(color("&7Categoria: &f" + relic.category()), color("&7" + relic.power()), color("&7Recarga: &f" + relic.cooldown()),
             color("&eClique com o botão direito para ativar."), color("&8Relíquia: " + relic.id())));
         meta.getPersistentDataContainer().set(new NamespacedKey(this, "relic_id"), PersistentDataType.STRING, relic.id());
         item.setItemMeta(meta); return item;
