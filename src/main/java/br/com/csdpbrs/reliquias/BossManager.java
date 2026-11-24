@@ -39,6 +39,8 @@ public final class BossManager implements Listener {
     private final Map<String, Integer> desiredPopulation = new ConcurrentHashMap<>();
     private final Map<UUID, BossBar> bars = new ConcurrentHashMap<>();
     private final Map<UUID, Long> nextSkill = new ConcurrentHashMap<>();
+    private final Map<UUID, Location> bossHomes = new ConcurrentHashMap<>();
+    private final Map<String, Integer> pendingRespawns = new ConcurrentHashMap<>();
 
     public BossManager(ReliquiasPlugin plugin) { this.plugin = plugin; }
 
@@ -62,7 +64,7 @@ public final class BossManager implements Listener {
             int max = Math.max(min, plugin.getConfig().getInt(path + ".population-max", 8));
             int target = desiredPopulation.computeIfAbsent(rarity,
                 key -> ThreadLocalRandom.current().nextInt(min, max + 1));
-            int alive = countAlive(rarity);
+            int alive = countAlive(rarity) + pendingRespawns.getOrDefault(rarity, 0);
             int attempts = 0;
             while (alive < target && attempts++ < target * 4) {
                 if (!spawnNow(rarity)) break;
@@ -100,6 +102,8 @@ public final class BossManager implements Listener {
             if (attack != null) attack.setBaseValue(plugin.getConfig().getDouble(path + ".damage", 5.0));
             boss.getPersistentDataContainer().set(new org.bukkit.NamespacedKey(plugin, "boss_rarity"), PersistentDataType.STRING, rarity);
             styleBoss(boss, rarity);
+            boss.setRemoveWhenFarAway(false);
+            saveBossHome(boss, loc);
             createBar(boss, rarity);
             if (firstInPack) {
                 announce(boss, rarity);
@@ -212,6 +216,12 @@ public final class BossManager implements Listener {
                 String rarity = boss.getPersistentDataContainer().get(
                     new org.bukkit.NamespacedKey(plugin, "boss_rarity"), PersistentDataType.STRING);
                 if (rarity == null) continue;
+                boss.setRemoveWhenFarAway(false);
+                Location home = bossHomes.computeIfAbsent(boss.getUniqueId(), id -> loadBossHome(boss));
+                if (home != null && (!boss.getWorld().equals(home.getWorld())
+                    || boss.getLocation().getBlock().getBiome() != home.getBlock().getBiome())) {
+                    boss.teleport(home);
+                }
                 BossBar bar = bars.computeIfAbsent(boss.getUniqueId(), id -> {
                     BarColor color = switch (rarity) {
                         case "raro" -> BarColor.WHITE;
@@ -268,10 +278,106 @@ public final class BossManager implements Listener {
 
     @EventHandler
     public void onBossDeath(EntityDeathEvent event) {
-        UUID id = event.getEntity().getUniqueId();
+        LivingEntity dead = event.getEntity();
+        String rarity = dead.getPersistentDataContainer().get(
+            new org.bukkit.NamespacedKey(plugin, "boss_rarity"), PersistentDataType.STRING);
+        UUID id = dead.getUniqueId();
         BossBar bar = bars.remove(id);
         if (bar != null) bar.removeAll();
         nextSkill.remove(id);
+        bossHomes.remove(id);
+        if (rarity == null) return;
+
+        Location deathLocation = dead.getLocation().clone();
+        pendingRespawns.merge(rarity, 1, Integer::sum);
+        Bukkit.getScheduler().runTaskLater(plugin,
+            () -> attemptReplacement(rarity, deathLocation, 0), 40L * 20L);
+    }
+
+    private void attemptReplacement(String rarity, Location origin, int retry) {
+        if (!plugin.isEnabled()) return;
+        if (spawnReplacement(rarity, origin)) {
+            pendingRespawns.compute(rarity, (key, value) -> value == null || value <= 1 ? null : value - 1);
+            return;
+        }
+        if (retry < 30) {
+            Bukkit.getScheduler().runTaskLater(plugin,
+                () -> attemptReplacement(rarity, origin, retry + 1), 20L * 10L);
+        } else {
+            pendingRespawns.compute(rarity, (key, value) -> value == null || value <= 1 ? null : value - 1);
+            plugin.getLogger().warning("Não foi possível reaparecer o chefe " + rarity + " no bioma original após várias tentativas.");
+        }
+    }
+
+    private boolean spawnReplacement(String rarity, Location origin) {
+        if (origin.getWorld() == null) return false;
+        String path = "bosses." + rarity;
+        World world = origin.getWorld();
+        Biome originalBiome = origin.getBlock().getBiome();
+        EntityType type;
+        try {
+            type = EntityType.valueOf(plugin.getConfig().getString(path + ".entity", "ZOMBIE").toUpperCase());
+        } catch (IllegalArgumentException ex) {
+            return false;
+        }
+
+        for (int attempt = 0; attempt < 80; attempt++) {
+            int dx = ThreadLocalRandom.current().nextInt(-12, 13);
+            int dz = ThreadLocalRandom.current().nextInt(-12, 13);
+            int x = origin.getBlockX() + dx;
+            int z = origin.getBlockZ() + dz;
+            int y = (world.getEnvironment() == World.Environment.NETHER
+                || world.getEnvironment() == World.Environment.NORMAL && origin.getBlockY() < world.getHighestBlockYAt(origin) - 2)
+                ? origin.getBlockY() + ThreadLocalRandom.current().nextInt(-3, 4)
+                : world.getHighestBlockYAt(x, z) + 1;
+            y = Math.max(world.getMinHeight() + 2, Math.min(world.getMaxHeight() - 3, y));
+            Location loc = new Location(world, x + 0.5, y, z + 0.5);
+            if (loc.getBlock().getBiome() != originalBiome) continue;
+            if (!allowedBiome(loc, rarity)) continue;
+            if (!loc.getBlock().isPassable() || !loc.clone().add(0, 1, 0).getBlock().isPassable()
+                || loc.clone().subtract(0, 1, 0).getBlock().isPassable()) continue;
+
+            Entity entity = world.spawnEntity(loc, type);
+            if (!(entity instanceof LivingEntity boss)) { entity.remove(); continue; }
+            boss.setCustomName(ReliquiasPlugin.color(plugin.getConfig().getString(path + ".display-name", "&fChefe")));
+            boss.setCustomNameVisible(true);
+            double hp = plugin.getConfig().getDouble(path + ".max-health", 60.0);
+            var maxHealth = boss.getAttribute(Attribute.MAX_HEALTH);
+            if (maxHealth != null) { maxHealth.setBaseValue(hp); boss.setHealth(hp); }
+            var attack = boss.getAttribute(Attribute.ATTACK_DAMAGE);
+            if (attack != null) attack.setBaseValue(plugin.getConfig().getDouble(path + ".damage", 5.0));
+            boss.getPersistentDataContainer().set(new org.bukkit.NamespacedKey(plugin, "boss_rarity"), PersistentDataType.STRING, rarity);
+            styleBoss(boss, rarity);
+            boss.setRemoveWhenFarAway(false);
+            saveBossHome(boss, loc);
+            createBar(boss, rarity);
+            Bukkit.broadcastMessage(ReliquiasPlugin.color("&6&l[CHEFE] &e" + boss.getCustomName()
+                + " &areapareceu no mesmo bioma após 40 segundos!"));
+            return true;
+        }
+        return false;
+    }
+
+    private void saveBossHome(LivingEntity boss, Location home) {
+        var data = boss.getPersistentDataContainer();
+        data.set(new org.bukkit.NamespacedKey(plugin, "boss_home_world"), PersistentDataType.STRING, home.getWorld().getName());
+        data.set(new org.bukkit.NamespacedKey(plugin, "boss_home_x"), PersistentDataType.DOUBLE, home.getX());
+        data.set(new org.bukkit.NamespacedKey(plugin, "boss_home_y"), PersistentDataType.DOUBLE, home.getY());
+        data.set(new org.bukkit.NamespacedKey(plugin, "boss_home_z"), PersistentDataType.DOUBLE, home.getZ());
+        bossHomes.put(boss.getUniqueId(), home.clone());
+    }
+
+    private Location loadBossHome(LivingEntity boss) {
+        var data = boss.getPersistentDataContainer();
+        String worldName = data.get(new org.bukkit.NamespacedKey(plugin, "boss_home_world"), PersistentDataType.STRING);
+        Double x = data.get(new org.bukkit.NamespacedKey(plugin, "boss_home_x"), PersistentDataType.DOUBLE);
+        Double y = data.get(new org.bukkit.NamespacedKey(plugin, "boss_home_y"), PersistentDataType.DOUBLE);
+        Double z = data.get(new org.bukkit.NamespacedKey(plugin, "boss_home_z"), PersistentDataType.DOUBLE);
+        World world = worldName == null ? null : Bukkit.getWorld(worldName);
+        if (world != null && x != null && y != null && z != null) return new Location(world, x, y, z);
+        Location current = boss.getLocation().clone();
+        saveBossHome(boss, current);
+        return current;
     }
 
     private void announce(LivingEntity boss, String rarity) {
