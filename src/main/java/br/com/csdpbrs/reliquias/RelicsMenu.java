@@ -28,10 +28,10 @@ public final class RelicsMenu implements Listener {
     public void open(Player player) {
         Inventory inv = Bukkit.createInventory(null, 54, TITLE);
         decorate(inv, Material.BLACK_STAINED_GLASS_PANE);
-        inv.setItem(10, entry(Material.QUARTZ, "&f&lRARAS", "&7Cinco relíquias de iniciação", "&f◆ Raridade branca", "&8Clique para ver a coleção"));
-        inv.setItem(12, entry(Material.AMETHYST_SHARD, "&5&lÉPICAS", "&7Cinco relíquias de poder elevado", "&5◆ Raridade roxa", "&8Clique para ver a coleção"));
-        inv.setItem(14, entry(Material.REDSTONE_BLOCK, "&c&lMÍTICAS", "&7Cinco relíquias de grande poder", "&c◆ Raridade vermelha", "&8Clique para ver a coleção"));
-        inv.setItem(16, entry(Material.BLAZE_POWDER, "&6&lLENDÁRIAS", "&7Cinco relíquias excepcionais", "&6◆ Raridade laranja", "&8Clique para ver a coleção"));
+        inv.setItem(10, entry(Material.QUARTZ, "&f&lRARAS", "&7Relíquias de utilidade e sobrevivência", "&f◆ Raridade branca", "&8Clique para ver a coleção"));
+        inv.setItem(12, entry(Material.AMETHYST_SHARD, "&5&lÉPICAS", "&7Relíquias de exploração e ocultação", "&5◆ Raridade roxa", "&8Clique para ver a coleção"));
+        inv.setItem(14, entry(Material.REDSTONE_BLOCK, "&c&lMÍTICAS", "&7Relíquias de mobilidade e proteção", "&c◆ Raridade vermelha", "&8Clique para ver a coleção"));
+        inv.setItem(16, entry(Material.BLAZE_POWDER, "&6&lLENDÁRIAS", "&7Relíquias especiais e raras", "&6◆ Raridade laranja", "&8Clique para ver a coleção"));
         inv.setItem(29, entry(Material.NETHER_STAR, "&e&lGUIA DE CHEFES", "&7Todos surgem perto de jogadores", "&7em qualquer mundo/dimensão.", "&fRaro: 2 fragmentos | 20 min", "&5Épico: 4 fragmentos", "&cMítico: 9 fragmentos", "&6Lendário: 12 fragmentos"));
         inv.setItem(31, entry(Material.BOOK, "&b&lMINHAS RELÍQUIAS", "&7Veja as relíquias que você já conquistou", "&8Clique para abrir sua coleção"));
         inv.setItem(33, entry(Material.EMERALD, "&a&lFORJADOR DE RELÍQUIAS", "&7Troque fragmentos por relíquias", "&8Clique para negociar"));
@@ -47,7 +47,7 @@ public final class RelicsMenu implements Listener {
         for (int i=0;i<relics.size();i++) {
             RelicCatalog.Relic relic = relics.get(i);
             List<String> lore = new ArrayList<>(relic.lore());
-            lore.add(" "); lore.add("&7Poder: &f" + relic.power()); lore.add("&7Recarga: &f" + relic.cooldown());
+            lore.add(" "); lore.add("&7Categoria: &f" + relic.category()); lore.add("&7Poder: &f" + relic.power()); lore.add("&7Recarga: &f" + relic.cooldown());
             lore.add(" "); lore.add(rarity.color + "◆ " + rarity.display);
             lore.add(plugin.owns(player, relic.id()) ? "&a✔ Você já possui esta relíquia." : "&c✘ Ainda não conquistada.");
             inv.setItem(slots[i], entry(relic.icon(), rarity.color + "&l" + relic.name(), lore.toArray(String[]::new)));
@@ -85,7 +85,7 @@ public final class RelicsMenu implements Listener {
                 "&7" + relic.power(), "&aConquistada"));
         }
         inv.setItem(49, entry(Material.ARROW, "&e&lVOLTAR", "&7Voltar ao menu principal"));
-        inv.setItem(4, entry(Material.BOOK, "&b&lSUA COLEÇÃO", "&7Relíquias conquistadas: &f" + index + "&7/20"));
+        inv.setItem(4, entry(Material.BOOK, "&b&lSUA COLEÇÃO", "&7Relíquias conquistadas: &f" + index + "&7/" + RelicCatalog.all().size()));
         player.openInventory(inv);
     }
 
@@ -104,7 +104,7 @@ public final class RelicsMenu implements Listener {
                 + "&c. Você possui &f" + available + "&c."));
             return;
         }
-        RelicCatalog.Relic reward = missing.get(ThreadLocalRandom.current().nextInt(missing.size()));
+        RelicCatalog.Relic reward = missing.get(0);
         removeFragments(player, fragmentKey, cost);
         plugin.registerOwned(player, reward.id());
         plugin.giveOrDrop(player, plugin.createRelic(reward));
