@@ -1,58 +1,62 @@
-# CSDPBRS ESSENTIALS RELIQUIAS
-# Os chefes surgem próximos de jogadores online, em posições válidas.
+# CSDPBRS ESSENTIALS RELIQUIAS - Mega atualização
 spawn:
   check-interval-seconds: 30
   minimum-distance-between-players: 24
-  maximum-attempts: 48
+  maximum-attempts: 64
   player-radius-min: 28
   player-radius-max: 48
+
+# População mantida entre 5 e 8 chefes de cada raridade.
+# Raro: Cherry Grove e Plains. Épico: cavernas. Mítico: Nether. Lendário: End.
 bosses:
   raro:
     enabled: true
-    respawn-minutes: 20
-    max-alive: 1
+    population-min: 5
+    population-max: 8
     entity: HUSK
     display-name: '&fGuardião Errante'
-    max-health: 60.0
-    damage: 5.0
-    fragments-min: 2
+    max-health: 24.0
+    damage: 2.0
+    fragments-min: 1
     fragments-max: 2
   epico:
     enabled: true
-    respawn-minutes: 120
-    max-alive: 1
+    population-min: 5
+    population-max: 8
     entity: ZOMBIE
     display-name: '&5Sentinela das Profundezas'
-    max-health: 140.0
-    damage: 8.0
-    fragments-min: 4
-    fragments-max: 4
+    max-health: 48.0
+    damage: 3.5
+    fragments-min: 1
+    fragments-max: 2
   mitico:
     enabled: true
-    respawn-minutes: 360
-    max-alive: 1
+    population-min: 5
+    population-max: 8
     entity: WITHER_SKELETON
     display-name: '&cExecutor do Abismo'
-    max-health: 260.0
-    damage: 12.0
-    fragments-min: 9
-    fragments-max: 9
+    max-health: 76.0
+    damage: 5.0
+    fragments-min: 1
+    fragments-max: 2
   lendario:
     enabled: true
-    respawn-minutes: 1440
-    max-alive: 1
+    population-min: 5
+    population-max: 8
     entity: ENDERMAN
     display-name: '&6Soberano do Fim'
-    max-health: 500.0
-    damage: 16.0
-    fragments-min: 12
-    fragments-max: 12
+    max-health: 110.0
+    damage: 6.0
+    fragments-min: 1
+    fragments-max: 2
+
 items:
   clock-name: '&6&lRelógio das Relíquias'
   clock-lore:
     - '&7Clique para abrir sua coleção.'
 
-# Custos do Forjador (fragmentos da raridade correspondente)
+# Custos fixos do Forjador. A troca entrega a próxima relíquia
+# ainda não conquistada na raridade escolhida.
 smith:
   cost:
     raro: 8
