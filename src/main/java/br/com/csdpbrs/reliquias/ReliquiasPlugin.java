@@ -27,7 +27,11 @@ public final class ReliquiasPlugin extends JavaPlugin implements org.bukkit.even
         getServer().getPluginManager().registerEvents(this, this);
         missions = new MissionManager(this);
         getServer().getPluginManager().registerEvents(missions, this);
-        getServer().getPluginManager().registerEvents(new RelicAbilityListener(this), this);
+        RelicAbilityListener relicAbilities = new RelicAbilityListener(this);
+        getServer().getPluginManager().registerEvents(relicAbilities, this);
+        getServer().getScheduler().runTaskTimer(this, () -> {
+            for (var online : Bukkit.getOnlinePlayers()) relicAbilities.applyPassiveEffects(online);
+        }, 20L, 20L);
         smithNpc = new RelicSmithNpc(this);
         getServer().getPluginManager().registerEvents(smithNpc, this);
         bossManager = new BossManager(this);
