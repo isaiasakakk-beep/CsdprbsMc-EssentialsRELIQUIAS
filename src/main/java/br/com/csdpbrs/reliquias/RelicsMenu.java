@@ -83,7 +83,7 @@ public final class RelicsMenu implements Listener {
         for (RelicCatalog.Relic relic : RelicCatalog.all()) {
             if (!plugin.owns(player, relic.id())) continue;
             inv.setItem(slots[index++], entry(relic.icon(), relic.rarity().color + "&l" + relic.name(),
-                "&7" + relic.power(), "&aConquistada"));
+                "&7Categoria: &f" + relic.category(), "&7" + relic.power(), "&aConquistada"));
         }
         inv.setItem(49, entry(Material.ARROW, "&e&lVOLTAR", "&7Voltar ao menu principal"));
         inv.setItem(4, entry(Material.BOOK, "&b&lSUA COLEÇÃO", "&7Relíquias conquistadas: &f" + index + "&7/" + RelicCatalog.all().size()));
