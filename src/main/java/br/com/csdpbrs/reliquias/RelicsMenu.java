@@ -129,13 +129,8 @@ public final class RelicsMenu implements Listener {
             return;
         }
 
-        int totalWeight = missing.stream().mapToInt(RelicCatalog.Relic::chanceWeight).sum();
-        int roll = ThreadLocalRandom.current().nextInt(Math.max(1, totalWeight));
+        // Recompensa previsível: a roleta é apenas uma animação, sem sorteio de prêmio.
         RelicCatalog.Relic reward = missing.get(0);
-        for (RelicCatalog.Relic candidate : missing) {
-            roll -= candidate.chanceWeight();
-            if (roll < 0) { reward = candidate; break; }
-        }
 
         removeFragments(player, "raro", cost);
         Inventory spin = Bukkit.createInventory(null, 27, ReliquiasPlugin.color("&8&lROLETА DE RELÍQUIAS"));
@@ -149,7 +144,7 @@ public final class RelicsMenu implements Listener {
             int slot = 10;
             @Override public void run() {
                 if (!player.isOnline()) { cancel(); return; }
-                RelicCatalog.Relic preview = RelicCatalog.all().get(ThreadLocalRandom.current().nextInt(RelicCatalog.all().size()));
+                RelicCatalog.Relic preview = RelicCatalog.all().get(step % RelicCatalog.all().size());
                 spin.setItem(slot, entry(preview.icon(), preview.rarity().color + "&l" + preview.name(),
                     "&7" + preview.category(), "&7A roleta está girando..."));
                 spin.setItem(13, entry(Material.CLOCK, "&e&lSORTEANDO...", "&7Aguarde o resultado."));
