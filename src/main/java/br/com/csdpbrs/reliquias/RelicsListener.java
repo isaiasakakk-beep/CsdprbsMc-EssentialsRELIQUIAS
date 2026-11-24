@@ -28,15 +28,21 @@ public final class RelicsListener implements Listener {
         event.getDrops().add(createFragment("raro", rareAmount));
 
         // Chefes de maior raridade podem conceder um fragmento extra correspondente.
+        String bonusRarity = switch (rarity) {
+            case "raro" -> "epico";
+            case "epico" -> "mitico";
+            case "mitico" -> "lendario";
+            default -> "epico";
+        };
         double extraChance = switch (rarity) {
             case "raro" -> 0.05;
-            case "epico" -> 0.18;
-            case "mitico" -> 0.24;
-            case "lendario" -> 0.30;
+            case "epico" -> 0.15;
+            case "mitico" -> 0.20;
+            case "lendario" -> 0.25;
             default -> 0.0;
         };
         if (ThreadLocalRandom.current().nextDouble() < extraChance) {
-            event.getDrops().add(createFragment(rarity, 1));
+            event.getDrops().add(createFragment(bonusRarity, 1));
         }
         event.setDroppedExp(Math.max(event.getDroppedExp(), 15));
     }
