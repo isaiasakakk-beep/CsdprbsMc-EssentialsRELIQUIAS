@@ -23,26 +23,28 @@ public final class RelicsListener implements Listener {
 
         event.getDrops().clear();
 
-        // Todos os chefes garantem fragmentos raros.
-        int rareAmount = ThreadLocalRandom.current().nextInt(1, 3);
-        event.getDrops().add(createFragment("raro", rareAmount));
-
-        // Chefes de maior raridade podem conceder um fragmento extra correspondente.
-        String bonusRarity = switch (rarity) {
-            case "raro" -> "epico";
-            case "epico" -> "mitico";
-            case "mitico" -> "lendario";
-            default -> "epico";
-        };
-        double extraChance = switch (rarity) {
-            case "raro" -> 0.05;
-            case "epico" -> 0.15;
-            case "mitico" -> 0.20;
-            case "lendario" -> 0.25;
-            default -> 0.0;
-        };
-        if (ThreadLocalRandom.current().nextDouble() < extraChance) {
-            event.getDrops().add(createFragment(bonusRarity, 1));
+        // Drops reforçados: cada chefe garante fragmentos da própria raridade
+        // e também entrega fragmentos raros para manter a progressão acessível.
+        switch (rarity) {
+            case "raro" -> event.getDrops().add(createFragment("raro", ThreadLocalRandom.current().nextInt(3, 6)));
+            case "epico" -> {
+                event.getDrops().add(createFragment("raro", ThreadLocalRandom.current().nextInt(2, 5)));
+                event.getDrops().add(createFragment("epico", ThreadLocalRandom.current().nextInt(3, 6)));
+            }
+            case "mitico" -> {
+                event.getDrops().add(createFragment("raro", ThreadLocalRandom.current().nextInt(3, 6)));
+                event.getDrops().add(createFragment("mitico", ThreadLocalRandom.current().nextInt(3, 6)));
+                if (ThreadLocalRandom.current().nextDouble() < 0.35)
+                    event.getDrops().add(createFragment("epico", ThreadLocalRandom.current().nextInt(1, 3)));
+            }
+            case "lendario" -> {
+                event.getDrops().add(createFragment("raro", ThreadLocalRandom.current().nextInt(3, 6)));
+                event.getDrops().add(createFragment("lendario", ThreadLocalRandom.current().nextInt(3, 6)));
+                event.getDrops().add(createFragment("mitico", ThreadLocalRandom.current().nextInt(1, 3)));
+                if (ThreadLocalRandom.current().nextDouble() < 0.50)
+                    event.getDrops().add(createFragment("epico", 1));
+            }
+            default -> event.getDrops().add(createFragment("raro", 3));
         }
         event.setDroppedExp(Math.max(event.getDroppedExp(), 15));
     }
