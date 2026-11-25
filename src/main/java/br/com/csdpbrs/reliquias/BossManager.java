@@ -57,35 +57,53 @@ public final class BossManager implements Listener {
     }
 
     private void checkSpawns() {
-        for (String rarity : List.of("raro", "epico", "mitico", "lendario")) {
-            String path = "bosses." + rarity;
-            if (!plugin.getConfig().getBoolean(path + ".enabled", true)) continue;
-            int min = Math.max(1, plugin.getConfig().getInt(path + ".population-min", 5));
-            int max = Math.max(min, plugin.getConfig().getInt(path + ".population-max", 8));
-            int target = desiredPopulation.computeIfAbsent(rarity,
-                key -> ThreadLocalRandom.current().nextInt(min, max + 1));
-            int alive = countAlive(rarity) + pendingRespawns.getOrDefault(rarity, 0);
-            int attempts = 0;
-            while (alive < target && attempts++ < target * 4) {
-                if (!spawnNow(rarity)) break;
-                alive = countAlive(rarity);
+        for (Player anchor : Bukkit.getOnlinePlayers()) {
+            Location playerLocation = anchor.getLocation();
+            if (!allowedBiome(playerLocation, "raro") && !allowedBiome(playerLocation, "epico")
+                && !allowedBiome(playerLocation, "mitico") && !allowedBiome(playerLocation, "lendario")) continue;
+            Biome biome = playerLocation.getBlock().getBiome();
+            for (String rarity : List.of("raro", "epico", "mitico", "lendario")) {
+                if (!allowedBiome(playerLocation, rarity)) continue;
+                String path = "bosses." + rarity;
+                if (!plugin.getConfig().getBoolean(path + ".enabled", true)) continue;
+                String populationKey = populationKey(rarity, anchor.getWorld(), biome);
+                int min = Math.max(1, plugin.getConfig().getInt(path + ".population-min", 5));
+                int max = Math.max(min, plugin.getConfig().getInt(path + ".population-max", 8));
+                int target = desiredPopulation.computeIfAbsent(populationKey,
+                    key -> ThreadLocalRandom.current().nextInt(min, max + 1));
+                int alive = countAlive(rarity, anchor.getWorld(), biome)
+                    + pendingRespawns.getOrDefault(populationKey, 0);
+                int attempts = 0;
+                while (alive < target && attempts++ < target * 4) {
+                    if (!spawnNow(rarity, anchor, biome)) break;
+                    alive = countAlive(rarity, anchor.getWorld(), biome)
+                        + pendingRespawns.getOrDefault(populationKey, 0);
+                }
             }
         }
     }
 
+    private String populationKey(String rarity, World world, Biome biome) {
+        return rarity + ":" + world.getUID() + ":" + biome.name();
+    }
+
     public boolean spawnNow(String rarity) {
+        List<? extends Player> candidates = Bukkit.getOnlinePlayers().stream()
+            .filter(player -> allowedBiome(player.getLocation(), rarity)).toList();
+        if (candidates.isEmpty()) return false;
+        Player anchor = candidates.get(ThreadLocalRandom.current().nextInt(candidates.size()));
+        return spawnNow(rarity, anchor, anchor.getLocation().getBlock().getBiome());
+    }
+
+    private boolean spawnNow(String rarity, Player anchor, Biome requiredBiome) {
         String path = "bosses." + rarity;
         if (!plugin.getConfig().contains(path)) return false;
-        List<? extends Player> onlinePlayers = Bukkit.getOnlinePlayers().stream()
-            .filter(player -> allowedBiome(player.getLocation(), rarity)).toList();
-        if (onlinePlayers.isEmpty()) return false;
-        Player anchor = onlinePlayers.get(ThreadLocalRandom.current().nextInt(onlinePlayers.size()));
-        boolean firstInPack = countAlive(rarity) == 0;
+        boolean firstInPack = countAlive(rarity, anchor.getWorld(), requiredBiome) == 0;
         World world = anchor.getWorld();
         int attempts = Math.max(1, plugin.getConfig().getInt("spawn.maximum-attempts", 48));
         for (int i = 0; i < attempts; i++) {
             Location loc = randomLocation(anchor, rarity);
-            if (loc == null || !validLocation(loc, rarity)) continue;
+            if (loc == null || loc.getBlock().getBiome() != requiredBiome || !validLocation(loc, rarity)) continue;
             EntityType type;
             try {
                 type = EntityType.valueOf(plugin.getConfig().getString(path + ".entity", "ZOMBIE").toUpperCase());
@@ -189,6 +207,16 @@ public final class BossManager implements Listener {
         };
     }
 
+    private int countAlive(String rarity, World targetWorld, Biome targetBiome) {
+        var key = new org.bukkit.NamespacedKey(plugin, "boss_rarity");
+        int count = 0;
+        for (Entity entity : targetWorld.getEntities()) {
+            if (rarity.equals(entity.getPersistentDataContainer().get(key, PersistentDataType.STRING))
+                && entity.getLocation().getBlock().getBiome() == targetBiome) count++;
+        }
+        return count;
+    }
+
     private int countAlive(String rarity) {
         var key = new org.bukkit.NamespacedKey(plugin, "boss_rarity");
         int count = 0;
@@ -289,22 +317,23 @@ public final class BossManager implements Listener {
         if (rarity == null) return;
 
         Location deathLocation = dead.getLocation().clone();
-        pendingRespawns.merge(rarity, 1, Integer::sum);
+        String pendingKey = populationKey(rarity, deathLocation.getWorld(), deathLocation.getBlock().getBiome());
+        pendingRespawns.merge(pendingKey, 1, Integer::sum);
         Bukkit.getScheduler().runTaskLater(plugin,
-            () -> attemptReplacement(rarity, deathLocation, 0), 40L * 20L);
+            () -> attemptReplacement(rarity, deathLocation, pendingKey, 0), 40L * 20L);
     }
 
-    private void attemptReplacement(String rarity, Location origin, int retry) {
+    private void attemptReplacement(String rarity, Location origin, String pendingKey, int retry) {
         if (!plugin.isEnabled()) return;
         if (spawnReplacement(rarity, origin)) {
-            pendingRespawns.compute(rarity, (key, value) -> value == null || value <= 1 ? null : value - 1);
+            pendingRespawns.compute(pendingKey, (key, value) -> value == null || value <= 1 ? null : value - 1);
             return;
         }
         if (retry < 30) {
             Bukkit.getScheduler().runTaskLater(plugin,
-                () -> attemptReplacement(rarity, origin, retry + 1), 20L * 10L);
+                () -> attemptReplacement(rarity, origin, pendingKey, retry + 1), 20L * 10L);
         } else {
-            pendingRespawns.compute(rarity, (key, value) -> value == null || value <= 1 ? null : value - 1);
+            pendingRespawns.compute(pendingKey, (key, value) -> value == null || value <= 1 ? null : value - 1);
             plugin.getLogger().warning("Não foi possível reaparecer o chefe " + rarity + " no bioma original após várias tentativas.");
         }
     }
