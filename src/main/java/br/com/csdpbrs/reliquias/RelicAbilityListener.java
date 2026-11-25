@@ -46,18 +46,30 @@ public final class RelicAbilityListener implements Listener {
         }
 
         long now = System.currentTimeMillis();
+        var data = player.getPersistentDataContainer();
         var cooldownKey = new org.bukkit.NamespacedKey(plugin, "relic_cd_" + id);
-        long readyAt = player.getPersistentDataContainer().getOrDefault(
-            cooldownKey, PersistentDataType.LONG, 0L);
+        var usesKey = new org.bukkit.NamespacedKey(plugin, "relic_uses_" + id);
+        long readyAt = data.getOrDefault(cooldownKey, PersistentDataType.LONG, 0L);
         if (now < readyAt) {
             long seconds = Math.max(1, (readyAt - now + 999) / 1000);
             player.sendMessage(ReliquiasPlugin.color("&cEssa relíquia recarrega em &f" + seconds + "s&c."));
             return;
         }
+        if (readyAt > 0L) {
+            data.remove(cooldownKey);
+            data.set(usesKey, PersistentDataType.INTEGER, 0);
+        }
 
         if (!activate(player, id)) return;
-        long cooldown = cooldownSeconds(relic.cooldown());
-        player.getPersistentDataContainer().set(cooldownKey, PersistentDataType.LONG, now + cooldown * 1000L);
+        int uses = data.getOrDefault(usesKey, PersistentDataType.INTEGER, 0) + 1;
+        if (uses >= 5) {
+            data.set(usesKey, PersistentDataType.INTEGER, 0);
+            data.set(cooldownKey, PersistentDataType.LONG, now + 35_000L);
+            player.sendMessage(ReliquiasPlugin.color("&eVocê usou esta relíquia 5 vezes! Recarga de &f35 segundos&e."));
+        } else {
+            data.set(usesKey, PersistentDataType.INTEGER, uses);
+            player.sendMessage(ReliquiasPlugin.color("&7Usos: &f" + uses + "/5 &7— sem recarga."));
+        }
         player.getWorld().playSound(player.getLocation(), Sound.BLOCK_AMETHYST_BLOCK_CHIME, 0.8f, 1.25f);
         player.sendMessage(ReliquiasPlugin.color("&d✦ &f" + relic.name() + " &dativada!"));
     }
@@ -156,8 +168,4 @@ public final class RelicAbilityListener implements Listener {
         return true;
     }
 
-    private long cooldownSeconds(String value) {
-        try { return Long.parseLong(value.split(" ")[0]); }
-        catch (Exception ignored) { return 60L; }
-    }
 }
