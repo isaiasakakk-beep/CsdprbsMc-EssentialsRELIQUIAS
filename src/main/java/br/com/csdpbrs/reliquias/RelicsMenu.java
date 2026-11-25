@@ -63,16 +63,15 @@ public final class RelicsMenu implements Listener {
         Inventory inv = Bukkit.createInventory(null, 27, SMITH_TITLE);
         ItemStack border = entry(Material.BLACK_STAINED_GLASS_PANE, " ");
         for (int i=0;i<27;i++) if (i<9 || i>=18 || i%9==0 || i%9==8) inv.setItem(i,border);
-        inv.setItem(13, entry(Material.CLOCK, "&d&lROULETA DE RELÍQUIAS",
-            "&7Custo: &f8 fragmentos raros",
-            "&7Animação de inventário em sequência.",
-            "&7Chance por raridade: 60% / 25% / 11% / 4%.",
-            "&eClique para começar!"));
+        inv.setItem(10, entry(Material.QUARTZ, "&f&lGIRO RARO", "&7Custo: &f10 fragmentos raros", "&eClique para girar."));
+        inv.setItem(12, entry(Material.AMETHYST_SHARD, "&5&lGIRO ÉPICO", "&7Custo: &f8 fragmentos épicos", "&eClique para girar."));
+        inv.setItem(14, entry(Material.REDSTONE_BLOCK, "&c&lGIRO MÍTICO", "&7Custo: &f4 fragmentos míticos", "&eClique para girar."));
+        inv.setItem(16, entry(Material.BLAZE_POWDER, "&6&lGIRO LENDÁRIO", "&7Custo: &f2 fragmentos lendários", "&eClique para girar."));
         inv.setItem(22, entry(Material.BOOK, "&e&lCOMO FUNCIONA",
-            "&7A roleta percorre os itens no inventário.",
-            "&7Raras são mais comuns; lendárias são mais difíceis.",
-            "&7Você conquista cada relíquia uma única vez.",
-            "&7Os fragmentos só são consumidos após validar a troca."));
+            "&7Escolha qual fragmento vai pagar o giro.",
+            "&7A recompensa pode ser de qualquer raridade.",
+            "&7Raras são mais comuns; lendárias são bem mais difíceis.",
+            "&7Você conquista cada relíquia uma única vez."));
         player.openInventory(inv);
     }
 
@@ -121,18 +120,22 @@ public final class RelicsMenu implements Listener {
         openSmith(player);
     }
 
-    private void startSpin(Player player) {
-        final int cost = plugin.getConfig().getInt("smith.spin-cost", 8);
+    private void startSpin(Player player, RelicCatalog.Rarity paymentRarity) {
+        final String paymentKey = paymentRarity.key;
+        final int cost = plugin.getConfig().getInt("smith.spin-cost." + paymentKey,
+            paymentRarity == RelicCatalog.Rarity.RARO ? 10 :
+            paymentRarity == RelicCatalog.Rarity.EPICO ? 8 :
+            paymentRarity == RelicCatalog.Rarity.MITICO ? 4 : 2);
         List<RelicCatalog.Relic> missing = RelicCatalog.all().stream()
             .filter(relic -> !plugin.owns(player, relic.id())).toList();
         if (missing.isEmpty()) {
             player.sendMessage(ReliquiasPlugin.color("&aVocê já conquistou todas as relíquias disponíveis!"));
             return;
         }
-        int available = countFragments(player, "raro");
+        int available = countFragments(player, paymentKey);
         if (available < cost) {
             player.sendMessage(ReliquiasPlugin.color("&cVocê precisa de &f" + cost
-                + " fragmentos raros&c. Você possui &f" + available + "&c."));
+                + " fragmentos " + paymentKey + "&c. Você possui &f" + available + "&c."));
             return;
         }
 
@@ -143,7 +146,7 @@ public final class RelicsMenu implements Listener {
         }
         RelicCatalog.Relic reward = chooseWeightedReward(missing);
 
-        removeFragments(player, "raro", cost);
+        removeFragments(player, paymentKey, cost);
         Inventory spin = Bukkit.createInventory(null, 27, SPIN_TITLE);
         ItemStack pane = entry(Material.BLACK_STAINED_GLASS_PANE, " ");
         for (int i=0;i<27;i++) if (i<9 || i>=18 || i%9==0 || i%9==8) spin.setItem(i,pane);
@@ -203,10 +206,10 @@ public final class RelicsMenu implements Listener {
 
     private int rarityWeight(RelicCatalog.Rarity rarity) {
         return switch (rarity) {
-            case RARO -> 60;
-            case EPICO -> 25;
-            case MITICO -> 11;
-            case LENDARIO -> 4;
+            case RARO -> 78;
+            case EPICO -> 16;
+            case MITICO -> 5;
+            case LENDARIO -> 1;
         };
     }
 
@@ -254,7 +257,13 @@ public final class RelicsMenu implements Listener {
         if (title.equals(SPIN_TITLE)) return;
         if (plugin.missions().isMissionMenu(title)) { if (slot == 10 || slot == 12 || slot == 14 || slot == 16) plugin.missions().handleClick(player, slot); return; }
         if (title.equals(SMITH_TITLE)) {
-            if (slot == 13) startSpin(player);
+            switch (slot) {
+                case 10 -> startSpin(player, RelicCatalog.Rarity.RARO);
+                case 12 -> startSpin(player, RelicCatalog.Rarity.EPICO);
+                case 14 -> startSpin(player, RelicCatalog.Rarity.MITICO);
+                case 16 -> startSpin(player, RelicCatalog.Rarity.LENDARIO);
+                default -> { }
+            }
             return;
         }
         if (title.equals(COLLECTION_TITLE)) { if (slot == 49) open(player); return; }
