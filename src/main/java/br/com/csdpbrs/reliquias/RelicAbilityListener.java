@@ -90,6 +90,14 @@ public final class RelicAbilityListener implements Listener {
         String off = relicId(player.getInventory().getItemInOffHand());
         if ("minerador".equals(main) || "minerador".equals(off))
             player.addPotionEffect(new PotionEffect(PotionEffectType.HASTE, 45, 1, true, false, true));
+
+        // A Relíquia da Imortalidade protege continuamente enquanto estiver em uma das mãos.
+        if ("imortalidade".equals(main) || "imortalidade".equals(off)) {
+            player.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, 45, 3, true, false, true));
+            player.addPotionEffect(new PotionEffect(PotionEffectType.REGENERATION, 45, 2, true, false, true));
+            player.addPotionEffect(new PotionEffect(PotionEffectType.ABSORPTION, 45, 3, true, false, true));
+            player.addPotionEffect(new PotionEffect(PotionEffectType.FIRE_RESISTANCE, 45, 0, true, false, true));
+        }
     }
 
     private String relicId(ItemStack item) {
