@@ -58,7 +58,11 @@ items:
 # Custos fixos do Forjador. A troca entrega a próxima relíquia
 # ainda não conquistada na raridade escolhida.
 smith:
-  spin-cost: 8
+  spin-cost:
+    raro: 10
+    epico: 8
+    mitico: 4
+    lendario: 2
   cost:
     raro: 8
     epico: 12
