@@ -15,6 +15,8 @@ import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.util.Vector;
+import org.bukkit.block.Block;
+import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 
 public final class RelicAbilityListener implements Listener {
@@ -100,6 +102,65 @@ public final class RelicAbilityListener implements Listener {
         }
     }
 
+
+    private void wardenBlast(Player player) {
+        var world = player.getWorld();
+        Location start = player.getEyeLocation();
+        Vector direction = start.getDirection().normalize();
+        double range = 24.0;
+
+        if (player.isSneaking()) {
+            player.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, 100, 4, true, false, true));
+            player.addPotionEffect(new PotionEffect(PotionEffectType.ABSORPTION, 100, 2, true, false, true));
+            world.playSound(player.getLocation(), Sound.ITEM_TOTEM_USE, 0.8f, 0.65f);
+        }
+
+        for (double distance = 0.5; distance <= range; distance += 0.5) {
+            Location point = start.clone().add(direction.clone().multiply(distance));
+            if (world.getBlockAt(point).getType().isSolid()) break;
+            world.spawnParticle(Particle.SONIC_BOOM, point, 1, 0, 0, 0, 0);
+            world.spawnParticle(Particle.SCULK_SOUL, point, 3, 0.12, 0.12, 0.12, 0.01);
+        }
+
+        var hit = world.rayTraceEntities(start, direction, range, 1.15,
+            entity -> entity instanceof LivingEntity && entity != player);
+        world.playSound(player.getLocation(), Sound.ENTITY_WARDEN_SONIC_BOOM, 1.4f, 0.8f);
+        world.playSound(player.getLocation(), Sound.ENTITY_WARDEN_SONIC_CHARGE, 0.8f, 0.7f);
+
+        if (hit == null || !(hit.getHitEntity() instanceof LivingEntity target)) {
+            player.sendMessage(ReliquiasPlugin.color("&8A rajada sônica atravessou o vazio."));
+            return;
+        }
+
+        target.getWorld().spawnParticle(Particle.SONIC_BOOM, target.getLocation().add(0, 1, 0), 1);
+        target.getWorld().spawnParticle(Particle.SCULK_SOUL, target.getLocation().add(0, 1, 0), 35, 0.7, 0.9, 0.7, 0.08);
+        target.getWorld().playSound(target.getLocation(), Sound.ENTITY_WARDEN_HURT, 1.0f, 0.8f);
+
+        if (target instanceof Player victim) {
+            if (hasFullArmor(victim, Material.IRON)) {
+                victim.setHealth(0.0);
+            } else if (hasFullArmor(victim, Material.DIAMOND)) {
+                victim.setHealth(Math.min(victim.getHealth(), 2.0));
+            } else {
+                victim.setHealth(Math.max(0.0, victim.getHealth() - 16.0));
+            }
+        } else {
+            target.damage(32.0, player);
+        }
+        player.sendMessage(ReliquiasPlugin.color("&5&lRAJADA SÔNICA! &7Alvo atingido."));
+    }
+
+    private boolean hasFullArmor(Player player, Material material) {
+        ItemStack[] armor = player.getInventory().getArmorContents();
+        if (armor.length != 4) return false;
+        String prefix = material.name() + "_";
+        String[] expected = {prefix + "HELMET", prefix + "CHESTPLATE", prefix + "LEGGINGS", prefix + "BOOTS"};
+        for (int i = 0; i < armor.length; i++) {
+            if (armor[i] == null || !armor[i].getType().name().equals(expected[i])) return false;
+        }
+        return true;
+    }
+
     private String relicId(ItemStack item) {
         if (item == null || !item.hasItemMeta()) return null;
         return item.getItemMeta().getPersistentDataContainer().get(relicKey, PersistentDataType.STRING);
@@ -146,14 +207,7 @@ public final class RelicAbilityListener implements Listener {
                 p.addPotionEffect(new PotionEffect(PotionEffectType.FIRE_RESISTANCE, 20 * 45, 0));
                 p.addPotionEffect(new PotionEffect(PotionEffectType.SLOW_FALLING, 20 * 20, 0));
             }
-            case "warden" -> {
-                for (Entity entity : p.getNearbyEntities(24, 16, 24)) {
-                    if (entity instanceof LivingEntity target && target != p)
-                        target.addPotionEffect(new PotionEffect(PotionEffectType.GLOWING, 20 * 6, 0));
-                }
-                p.getWorld().spawnParticle(Particle.SCULK_SOUL, p.getLocation().add(0, 1, 0), 55, 2.5, 1.2, 2.5, 0.04);
-                p.getWorld().playSound(p.getLocation(), Sound.BLOCK_SCULK_SENSOR_CLICKING, 1.0f, 0.65f);
-            }
+            case "warden" -> wardenBlast(p);
             case "stomper" -> {
                 p.addPotionEffect(new PotionEffect(PotionEffectType.JUMP_BOOST, 20 * 15, 3));
                 p.addPotionEffect(new PotionEffect(PotionEffectType.SLOW_FALLING, 20 * 15, 0));
