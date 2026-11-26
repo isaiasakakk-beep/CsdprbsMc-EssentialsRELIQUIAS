@@ -5,6 +5,12 @@ import org.bukkit.ChatColor;
 import org.bukkit.NamespacedKey;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
+import org.bukkit.OfflinePlayer;
+import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.event.entity.PlayerDeathEvent;
+import org.bukkit.event.player.PlayerRespawnEvent;
+import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.persistence.PersistentDataType;
 import java.util.Arrays;
@@ -22,6 +28,9 @@ public final class ReliquiasPlugin extends JavaPlugin implements org.bukkit.even
         saveDefaultConfig();
         clockKey = new NamespacedKey(this, "relics_clock");
         ownedKey = new NamespacedKey(this, "owned_relics");
+        getConfig().addDefault("warden.owner-name", "Spiderzinpvp");
+        getConfig().options().copyDefaults(true);
+        saveConfig();
         menu = new RelicsMenu(this);
         getServer().getPluginManager().registerEvents(menu, this);
         getServer().getPluginManager().registerEvents(new RelicsListener(this), this);
@@ -71,6 +80,79 @@ public final class ReliquiasPlugin extends JavaPlugin implements org.bukkit.even
     @Override public void onDisable() { if (bossManager != null) bossManager.stop(); }
     public NamespacedKey clockKey() { return clockKey; }
     public NamespacedKey ownedKey() { return ownedKey; }
+    public NamespacedKey relicKey() { return new NamespacedKey(this, "relic_id"); }
+    public String wardenOwnerName() { return getConfig().getString("warden.owner-name", "Spiderzinpvp"); }
+    public boolean isWardenOwner(OfflinePlayer player) {
+        String uuid = getConfig().getString("warden.owner-uuid", "");
+        if (!uuid.isBlank() && player.getUniqueId().toString().equalsIgnoreCase(uuid)) return true;
+        return player.getName() != null && player.getName().equalsIgnoreCase(wardenOwnerName());
+    }
+    public void setWardenOwner(Player player) {
+        getConfig().set("warden.owner-uuid", player.getUniqueId().toString());
+        getConfig().set("warden.owner-name", player.getName());
+        saveConfig();
+        registerOwned(player, "warden");
+    }
+    public void unregisterOwned(Player player, String id) {
+        Set<String> ids = ownedRelics(player);
+        ids.remove(id);
+        player.getPersistentDataContainer().set(ownedKey, PersistentDataType.STRING, String.join(",", ids));
+    }
+    public void removeRelicItems(Player player, String id) {
+        var inv = player.getInventory();
+        ItemStack[] storage = inv.getStorageContents();
+        for (int i=0;i<storage.length;i++) if (hasRelicId(storage[i], id)) storage[i] = null;
+        inv.setStorageContents(storage);
+        ItemStack[] armor = inv.getArmorContents();
+        for (int i=0;i<armor.length;i++) if (hasRelicId(armor[i], id)) armor[i] = null;
+        inv.setArmorContents(armor);
+        if (hasRelicId(inv.getItemInOffHand(), id)) inv.setItemInOffHand(null);
+        unregisterOwned(player, id);
+    }
+    private boolean hasRelicId(ItemStack item, String id) {
+        return item != null && item.hasItemMeta() && id.equals(item.getItemMeta().getPersistentDataContainer().get(relicKey(), PersistentDataType.STRING));
+    }
+    private void queueOfflineRemoval(OfflinePlayer player, String id) {
+        String key = "pending-removals." + player.getUniqueId();
+        java.util.List<String> ids = new java.util.ArrayList<>(getConfig().getStringList(key));
+        if (!ids.contains(id)) ids.add(id);
+        getConfig().set(key, ids);
+    }
+    private void applyPendingRemovals(Player player) {
+        String key = "pending-removals." + player.getUniqueId();
+        for (String id : getConfig().getStringList(key)) removeRelicItems(player, id);
+        getConfig().set(key, null);
+        saveConfig();
+    }
+    @org.bukkit.event.EventHandler
+    public void onRelicPlayerJoin(PlayerJoinEvent event) {
+        Player player = event.getPlayer();
+        if (player.getName().equalsIgnoreCase(wardenOwnerName()) && getConfig().getString("warden.owner-uuid", "").isBlank()) {
+            getConfig().set("warden.owner-uuid", player.getUniqueId().toString());
+            saveConfig();
+        }
+        applyPendingRemovals(player);
+    }
+    @org.bukkit.event.EventHandler
+    public void onWardenOwnerDeath(PlayerDeathEvent event) {
+        Player victim = event.getEntity();
+        if (!isWardenOwner(victim)) return;
+        event.getDrops().removeIf(item -> hasRelicId(item, "warden"));
+        unregisterOwned(victim, "warden");
+        Player killer = victim.getKiller();
+        if (killer != null && !killer.equals(victim)) {
+            setWardenOwner(killer);
+            Bukkit.getScheduler().runTask(this, () -> giveOrDrop(killer, createRelic(RelicCatalog.all().stream().filter(r -> r.id().equals("warden")).findFirst().orElseThrow())));
+            Bukkit.broadcastMessage(color("&6&lRELIQUIA DO WARDEN &7agora pertence a &e" + killer.getName() + "&7!"));
+        } else {
+            Bukkit.getScheduler().runTask(this, () -> {
+                if (victim.isOnline()) {
+                    setWardenOwner(victim);
+                    giveOrDrop(victim, createRelic(RelicCatalog.all().stream().filter(r -> r.id().equals("warden")).findFirst().orElseThrow()));
+                }
+            });
+        }
+    }
     public RelicsMenu menu() { return menu; }
     public BossManager bossManager() { return bossManager; }
     public RelicSmithNpc smithNpc() { return smithNpc; }
@@ -109,7 +191,7 @@ public final class ReliquiasPlugin extends JavaPlugin implements org.bukkit.even
         meta.setDisplayName(color(relic.rarity().color + "&l" + relic.name()));
         meta.setLore(java.util.List.of(color("&7Categoria: &f" + relic.category()), color("&7" + relic.power()), color("&7Recarga: &f" + relic.cooldown()),
             color("&eClique com o botão direito para ativar."), color("&8Relíquia: " + relic.id())));
-        meta.getPersistentDataContainer().set(new NamespacedKey(this, "relic_id"), PersistentDataType.STRING, relic.id());
+        meta.getPersistentDataContainer().set(relicKey(), PersistentDataType.STRING, relic.id());
         item.setItemMeta(meta); return item;
     }
     public static String color(String text) { return ChatColor.translateAlternateColorCodes('&', text == null ? "" : text); }
@@ -122,9 +204,34 @@ public final class ReliquiasPlugin extends JavaPlugin implements org.bukkit.even
             sender.sendMessage(color("&6/reliquias give <jogador> <id>"));
             sender.sendMessage(color("&6/reliquias reload"));
             sender.sendMessage(color("&6/reliquias boss <raridade>"));
-            sender.sendMessage(color("&6/reliquias npc")); return true;
+            sender.sendMessage(color("&6/reliquias npc"));
+            sender.sendMessage(color("&6/reliquias remover <id|todas> <jogador|todos> [exceto <nick>]"));
+            sender.sendMessage(color("&6/reliquias warden")); return true;
         }
         if (args[0].equalsIgnoreCase("reload")) { reloadConfig(); sender.sendMessage(color("&aConfiguração recarregada.")); return true; }
+        if (args[0].equalsIgnoreCase("warden")) { sender.sendMessage(color("&6A Relíquia do Warden pertence a: &e" + wardenOwnerName())); return true; }
+        if (args[0].equalsIgnoreCase("remover") && args.length >= 3) {
+            String requested = args[1].equalsIgnoreCase("todas") ? "todas" : args[1].toLowerCase();
+            if (!requested.equals("todas") && RelicCatalog.all().stream().noneMatch(r -> r.id().equals(requested))) { sender.sendMessage(color("&cID inválido. Use: " + String.join(", ", RelicCatalog.all().stream().map(RelicCatalog.Relic::id).toList()) + ", ou todas.")); return true; }
+            String exclude = args.length >= 5 && args[3].equalsIgnoreCase("exceto") ? args[4] : "";
+            java.util.List<String> ids = requested.equals("todas") ? RelicCatalog.all().stream().map(RelicCatalog.Relic::id).toList() : java.util.List.of(requested);
+            java.util.List<OfflinePlayer> targets = new java.util.ArrayList<>();
+            if (args[2].equalsIgnoreCase("todos")) targets.addAll(java.util.Arrays.asList(Bukkit.getOfflinePlayers()));
+            else targets.add(Bukkit.getOfflinePlayer(args[2]));
+            int onlineCount = 0, queuedCount = 0;
+            for (OfflinePlayer target : targets) {
+                if (target.getName() != null && target.getName().equalsIgnoreCase(exclude)) continue;
+                Player online = target.getPlayer();
+                for (String id : ids) {
+                    if (online != null) removeRelicItems(online, id);
+                    else queueOfflineRemoval(target, id);
+                }
+                if (online != null) onlineCount++; else queuedCount++;
+            }
+            saveConfig();
+            sender.sendMessage(color("&aRemoção de &f" + requested + "&a processada. Online: &f" + onlineCount + "&a; offline com remoção pendente: &f" + queuedCount + "&a. Exceção: &f" + (exclude.isBlank() ? "nenhuma" : exclude)));
+            return true;
+        }
         if (args[0].equalsIgnoreCase("relogio") && args.length >= 2) {
             var target = getServer().getPlayerExact(args[1]);
             if (target == null) { sender.sendMessage(color("&cJogador não encontrado.")); return true; }
@@ -135,6 +242,7 @@ public final class ReliquiasPlugin extends JavaPlugin implements org.bukkit.even
             if (target == null) { sender.sendMessage(color("&cJogador não encontrado.")); return true; }
             var relic = RelicCatalog.all().stream().filter(r -> r.id().equalsIgnoreCase(args[2])).findFirst().orElse(null);
             if (relic == null) { sender.sendMessage(color("&cID inválido. IDs: " + String.join(", ", RelicCatalog.all().stream().map(RelicCatalog.Relic::id).toList()))); return true; }
+            if (relic.id().equals("warden") && !isWardenOwner(target)) { sender.sendMessage(color("&cO Warden é único e só pode ser transferido ao derrotar o proprietário atual: &f" + wardenOwnerName())); return true; }
             giveOrDrop(target, createRelic(relic)); registerOwned(target, relic.id());
             sender.sendMessage(color("&aRelíquia &f" + relic.name() + " &aentregue para " + target.getName() + ".")); return true;
         }
