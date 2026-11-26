@@ -12,6 +12,10 @@ import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.entity.EntityPickupItemEvent;
+import org.bukkit.event.player.PlayerDropItemEvent;
+import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryDragEvent;
+import org.bukkit.event.inventory.InventoryMoveItemEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.persistence.PersistentDataType;
 import java.util.Arrays;
@@ -135,6 +139,22 @@ public final class ReliquiasPlugin extends JavaPlugin implements org.bukkit.even
         }
         applyPendingRemovals(player);
         if (!isWardenOwner(player)) removeRelicItems(player, "warden");
+    }
+    @org.bukkit.event.EventHandler
+    public void onWardenDrop(PlayerDropItemEvent event) {
+        if (hasRelicId(event.getItemDrop().getItemStack(), "warden")) event.setCancelled(true);
+    }
+    @org.bukkit.event.EventHandler
+    public void onWardenInventoryClick(InventoryClickEvent event) {
+        if (hasRelicId(event.getCurrentItem(), "warden") || hasRelicId(event.getCursor(), "warden")) event.setCancelled(true);
+    }
+    @org.bukkit.event.EventHandler
+    public void onWardenInventoryDrag(InventoryDragEvent event) {
+        if (hasRelicId(event.getOldCursor(), "warden")) event.setCancelled(true);
+    }
+    @org.bukkit.event.EventHandler
+    public void onWardenHopperMove(InventoryMoveItemEvent event) {
+        if (hasRelicId(event.getItem(), "warden")) event.setCancelled(true);
     }
     @org.bukkit.event.EventHandler
     public void onWardenPickup(EntityPickupItemEvent event) {
