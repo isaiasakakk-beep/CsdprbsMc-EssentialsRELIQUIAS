@@ -11,6 +11,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.entity.EntityPickupItemEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.persistence.PersistentDataType;
 import java.util.Arrays;
@@ -107,6 +108,7 @@ public final class ReliquiasPlugin extends JavaPlugin implements org.bukkit.even
         for (int i=0;i<armor.length;i++) if (hasRelicId(armor[i], id)) armor[i] = null;
         inv.setArmorContents(armor);
         if (hasRelicId(inv.getItemInOffHand(), id)) inv.setItemInOffHand(null);
+        if (hasRelicId(player.getItemOnCursor(), id)) player.setItemOnCursor(null);
         unregisterOwned(player, id);
     }
     private boolean hasRelicId(ItemStack item, String id) {
@@ -132,6 +134,27 @@ public final class ReliquiasPlugin extends JavaPlugin implements org.bukkit.even
             saveConfig();
         }
         applyPendingRemovals(player);
+        if (!isWardenOwner(player)) removeRelicItems(player, "warden");
+    }
+    @org.bukkit.event.EventHandler
+    public void onWardenPickup(EntityPickupItemEvent event) {
+        if (!(event.getEntity() instanceof Player player)) return;
+        if (hasRelicId(event.getItem().getItemStack(), "warden") && !isWardenOwner(player)) event.setCancelled(true);
+    }
+    @org.bukkit.event.EventHandler
+    public void onWardenOwnerRespawn(PlayerRespawnEvent event) {
+        Player player = event.getPlayer();
+        Bukkit.getScheduler().runTaskLater(this, () -> {
+            if (!player.isOnline() || !isWardenOwner(player)) return;
+            boolean hasWarden = java.util.Arrays.stream(player.getInventory().getContents()).anyMatch(item -> hasRelicId(item, "warden"))
+                || java.util.Arrays.stream(player.getInventory().getArmorContents()).anyMatch(item -> hasRelicId(item, "warden"))
+                || hasRelicId(player.getInventory().getItemInOffHand(), "warden");
+            if (!hasWarden) {
+                var warden = RelicCatalog.all().stream().filter(r -> r.id().equals("warden")).findFirst().orElseThrow();
+                registerOwned(player, "warden");
+                giveOrDrop(player, createRelic(warden));
+            }
+        }, 1L);
     }
     @org.bukkit.event.EventHandler
     public void onWardenOwnerDeath(PlayerDeathEvent event) {
@@ -144,13 +167,6 @@ public final class ReliquiasPlugin extends JavaPlugin implements org.bukkit.even
             setWardenOwner(killer);
             Bukkit.getScheduler().runTask(this, () -> giveOrDrop(killer, createRelic(RelicCatalog.all().stream().filter(r -> r.id().equals("warden")).findFirst().orElseThrow())));
             Bukkit.broadcastMessage(color("&6&lRELIQUIA DO WARDEN &7agora pertence a &e" + killer.getName() + "&7!"));
-        } else {
-            Bukkit.getScheduler().runTask(this, () -> {
-                if (victim.isOnline()) {
-                    setWardenOwner(victim);
-                    giveOrDrop(victim, createRelic(RelicCatalog.all().stream().filter(r -> r.id().equals("warden")).findFirst().orElseThrow()));
-                }
-            });
         }
     }
     public RelicsMenu menu() { return menu; }
