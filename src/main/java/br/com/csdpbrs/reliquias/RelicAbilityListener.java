@@ -154,7 +154,7 @@ public final class RelicAbilityListener implements Listener {
         ItemStack[] armor = player.getInventory().getArmorContents();
         if (armor.length != 4) return false;
         String prefix = material.name() + "_";
-        String[] expected = {prefix + "HELMET", prefix + "CHESTPLATE", prefix + "LEGGINGS", prefix + "BOOTS"};
+        String[] expected = {prefix + "BOOTS", prefix + "LEGGINGS", prefix + "CHESTPLATE", prefix + "HELMET"};
         for (int i = 0; i < armor.length; i++) {
             if (armor[i] == null || !armor[i].getType().name().equals(expected[i])) return false;
         }
