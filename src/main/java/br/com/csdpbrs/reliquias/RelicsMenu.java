@@ -50,6 +50,7 @@ public final class RelicsMenu implements Listener {
         for (int i=0;i<relics.size();i++) {
             RelicCatalog.Relic relic = relics.get(i);
             List<String> lore = new ArrayList<>(relic.lore());
+            if (relic.id().equals("warden")) lore.add("&6Proprietário único: &e" + plugin.wardenOwnerName());
             lore.add(" "); lore.add("&7Categoria: &f" + relic.category()); lore.add("&7Poder: &f" + relic.power()); lore.add("&7Recarga: &f" + relic.cooldown());
             lore.add(" "); lore.add(rarity.color + "◆ " + rarity.display);
             lore.add(plugin.owns(player, relic.id()) ? "&a✔ Você já possui esta relíquia." : "&c✘ Ainda não conquistada.");
@@ -70,6 +71,8 @@ public final class RelicsMenu implements Listener {
         inv.setItem(22, entry(Material.BOOK, "&e&lCOMO FUNCIONA",
             "&7Escolha qual fragmento vai pagar o giro.",
             "&7A recompensa pode ser de qualquer raridade.",
+            "&6A Relíquia do Warden não sai na roleta.",
+            "&7Ela só muda de dono quando seu portador é derrotado por outro jogador.",
             "&7Raras são mais comuns; lendárias são bem mais difíceis.",
             "&7Você conquista cada relíquia uma única vez."));
         player.openInventory(inv);
@@ -100,7 +103,7 @@ public final class RelicsMenu implements Listener {
         String fragmentKey = rarity.key;
         int cost = plugin.getConfig().getInt("smith.cost." + fragmentKey, 8);
         List<RelicCatalog.Relic> missing = RelicCatalog.byRarity(rarity).stream()
-            .filter(relic -> !plugin.owns(player, relic.id())).toList();
+            .filter(relic -> !relic.id().equals("warden") && !plugin.owns(player, relic.id())).toList();
         if (missing.isEmpty()) {
             player.sendMessage(ReliquiasPlugin.color("&aVocê já conquistou todas as relíquias desta raridade!"));
             return;
@@ -127,7 +130,7 @@ public final class RelicsMenu implements Listener {
             paymentRarity == RelicCatalog.Rarity.EPICO ? 8 :
             paymentRarity == RelicCatalog.Rarity.MITICO ? 4 : 2);
         List<RelicCatalog.Relic> missing = RelicCatalog.all().stream()
-            .filter(relic -> !plugin.owns(player, relic.id())).toList();
+            .filter(relic -> !relic.id().equals("warden") && !plugin.owns(player, relic.id())).toList();
         if (missing.isEmpty()) {
             player.sendMessage(ReliquiasPlugin.color("&aVocê já conquistou todas as relíquias disponíveis!"));
             return;
