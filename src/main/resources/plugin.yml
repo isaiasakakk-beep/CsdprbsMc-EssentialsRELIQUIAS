@@ -7,7 +7,7 @@ description: Sistema independente de relíquias, chefes e fragmentos.
 commands:
   reliquias:
     description: Comandos administrativos do sistema de relíquias.
-    usage: /reliquias <relogio|give|reload|boss|npc>
+    usage: /reliquias <relogio|give|remover|warden|reload|boss|npc>
     permission: reliquias.admin
 permissions:
   reliquias.admin:
