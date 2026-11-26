@@ -33,8 +33,13 @@ public final class ReliquiasPlugin extends JavaPlugin implements org.bukkit.even
         saveDefaultConfig();
         clockKey = new NamespacedKey(this, "relics_clock");
         ownedKey = new NamespacedKey(this, "owned_relics");
-        getConfig().addDefault("warden.owner-name", "Spiderzinpvp");
+        getConfig().addDefault("warden.owner-name", ".Spiderzinpvp");
         getConfig().options().copyDefaults(true);
+        // Migra a configuração antiga e limpa um UUID eventualmente associado ao nick sem o ponto.
+        if ("Spiderzinpvp".equalsIgnoreCase(getConfig().getString("warden.owner-name", ""))) {
+            getConfig().set("warden.owner-name", ".Spiderzinpvp");
+            getConfig().set("warden.owner-uuid", null);
+        }
         saveConfig();
         menu = new RelicsMenu(this);
         getServer().getPluginManager().registerEvents(menu, this);
@@ -86,7 +91,7 @@ public final class ReliquiasPlugin extends JavaPlugin implements org.bukkit.even
     public NamespacedKey clockKey() { return clockKey; }
     public NamespacedKey ownedKey() { return ownedKey; }
     public NamespacedKey relicKey() { return new NamespacedKey(this, "relic_id"); }
-    public String wardenOwnerName() { return getConfig().getString("warden.owner-name", "Spiderzinpvp"); }
+    public String wardenOwnerName() { return getConfig().getString("warden.owner-name", ".Spiderzinpvp"); }
     public boolean isWardenOwner(OfflinePlayer player) {
         String uuid = getConfig().getString("warden.owner-uuid", "");
         if (!uuid.isBlank() && player.getUniqueId().toString().equalsIgnoreCase(uuid)) return true;
