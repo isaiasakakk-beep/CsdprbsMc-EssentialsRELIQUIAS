@@ -16,7 +16,6 @@ import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.util.Vector;
 import org.bukkit.block.Block;
-import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 
 public final class RelicAbilityListener implements Listener {
@@ -137,9 +136,9 @@ public final class RelicAbilityListener implements Listener {
         target.getWorld().playSound(target.getLocation(), Sound.ENTITY_WARDEN_HURT, 1.0f, 0.8f);
 
         if (target instanceof Player victim) {
-            if (hasFullArmor(victim, Material.IRON)) {
+            if (hasFullArmor(victim, "IRON")) {
                 victim.setHealth(0.0);
-            } else if (hasFullArmor(victim, Material.DIAMOND)) {
+            } else if (hasFullArmor(victim, "DIAMOND")) {
                 victim.setHealth(Math.min(victim.getHealth(), 2.0));
             } else {
                 victim.setHealth(Math.max(0.0, victim.getHealth() - 16.0));
@@ -150,10 +149,10 @@ public final class RelicAbilityListener implements Listener {
         player.sendMessage(ReliquiasPlugin.color("&5&lRAJADA SÔNICA! &7Alvo atingido."));
     }
 
-    private boolean hasFullArmor(Player player, Material material) {
+    private boolean hasFullArmor(Player player, String material) {
         ItemStack[] armor = player.getInventory().getArmorContents();
         if (armor.length != 4) return false;
-        String prefix = material.name() + "_";
+        String prefix = material + "_";
         String[] expected = {prefix + "BOOTS", prefix + "LEGGINGS", prefix + "CHESTPLATE", prefix + "HELMET"};
         for (int i = 0; i < armor.length; i++) {
             if (armor[i] == null || !armor[i].getType().name().equals(expected[i])) return false;
